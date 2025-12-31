@@ -45,8 +45,8 @@ export const ListeningPractice: React.FC = () => {
 
     // Calculate delay based on speed (faster speed = shorter delay)
     // Base delay is 1000ms. If speed is 2.0, delay is 500ms.
-    const gapDelay = 750 / (config.listeningSpeed || 1);
-    const opGap = 800 / (config.listeningSpeed || 1);
+    const gapDelay = 600 / (config.listeningSpeed || 1);
+    const opGap = 1000 / (config.listeningSpeed || 1);
 
     for (let i = 0; i < sequence.length; i++) {
       if (stopRef.current) break;
