@@ -26,8 +26,8 @@ export const Dashboard: React.FC = () => {
       shadow: 'shadow-amber-500/25'
     },
     { 
-      title: 'Request Papers', 
-      subtitle: 'Materials & Support',
+      title: 'Enrollement Interest', 
+      subtitle: 'Join TUSGU',
       icon: FileText, 
       path: '/request', 
       gradient: 'from-emerald-500 to-emerald-700',

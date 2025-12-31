@@ -13,6 +13,11 @@ export const FlashPractice: React.FC = () => {
     fontSize: 'medium',
     onlyPositive: false 
   });
+  
+  // Local state for inputs to allow empty string while typing
+  const [digitsInput, setDigitsInput] = useState<string>('1');
+  const [termsInput, setTermsInput] = useState<string>('5');
+
   const [currentNumber, setCurrentNumber] = useState<string | null>(null);
   const [expectedAnswer, setExpectedAnswer] = useState<number>(0);
   const [userAnswer, setUserAnswer] = useState<string>('');
@@ -50,10 +55,23 @@ export const FlashPractice: React.FC = () => {
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   const startGame = useCallback(async () => {
+    // Validate inputs
+    const d = parseInt(digitsInput);
+    const t = parseInt(termsInput);
+
+    // If inputs are empty or invalid, do not start
+    if (isNaN(d) || d < 1 || isNaN(t) || t < 2) {
+      return;
+    }
+
+    // Update main config to match inputs
+    const newConfig = { ...config, digits: d, terms: t };
+    setConfig(newConfig);
+
     stopRef.current = false;
     
-    // Generate sequence
-    const { sequence, expectedAnswer: answer } = generateSequence(config.digits, config.terms, config.onlyPositive);
+    // Generate sequence using the new validated values
+    const { sequence, expectedAnswer: answer } = generateSequence(newConfig.digits, newConfig.terms, newConfig.onlyPositive);
     setExpectedAnswer(answer);
     
     // Switch UI
@@ -74,7 +92,7 @@ export const FlashPractice: React.FC = () => {
       setCurrentNumber(display);
       
       // Wait for configured speed
-      await sleep(config.speed || 1000);
+      await sleep(newConfig.speed || 1000);
       
       if (stopRef.current || !isMountedRef.current) break;
 
@@ -89,7 +107,7 @@ export const FlashPractice: React.FC = () => {
     if (!stopRef.current && isMountedRef.current) {
       setGameState(GameState.INPUT);
     }
-  }, [config]);
+  }, [config, digitsInput, termsInput]);
 
   const stopGame = () => {
     stopRef.current = true;
@@ -137,8 +155,8 @@ export const FlashPractice: React.FC = () => {
              <input
               type="number"
               min="1"
-              value={config.digits}
-              onChange={(e) => setConfig({...config, digits: Math.max(1, parseInt(e.target.value) || 0)})}
+              value={digitsInput}
+              onChange={(e) => setDigitsInput(e.target.value)}
               className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-2xl font-bold text-center text-tusgu-blue dark:text-blue-300 focus:ring-2 focus:ring-tusgu-blue outline-none transition-all"
             />
           </div>
@@ -147,8 +165,8 @@ export const FlashPractice: React.FC = () => {
             <input
               type="number"
               min="2"
-              value={config.terms}
-              onChange={(e) => setConfig({...config, terms: Math.max(2, parseInt(e.target.value) || 0)})}
+              value={termsInput}
+              onChange={(e) => setTermsInput(e.target.value)}
               className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-2xl font-bold text-center text-tusgu-blue dark:text-blue-300 focus:ring-2 focus:ring-tusgu-blue outline-none transition-all"
             />
           </div>

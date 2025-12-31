@@ -14,7 +14,14 @@ export const ListeningPractice: React.FC = () => {
     listeningSpeed: 1.0,
     onlyPositive: false
   });
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+
+  // Local state for inputs to allow empty string while typing
+  const [digitsInput, setDigitsInput] = useState<string>('1');
+  const [termsInput, setTermsInput] = useState<string>('5');
+  
+  // Custom mapped voices to ensure consistency (3 Female, 2 Male target)
+  const [voiceOptions, setVoiceOptions] = useState<{name: string, voice: SpeechSynthesisVoice | null}[]>([]);
+  
   const [currentSequence, setCurrentSequence] = useState<MathSequenceItem[]>([]);
   const [expectedAnswer, setExpectedAnswer] = useState<number>(0);
   const [userAnswer, setUserAnswer] = useState<string>('');
@@ -25,21 +32,63 @@ export const ListeningPractice: React.FC = () => {
   const [score, setScore] = useState(0);
   const [totalQuestions, setTotalQuestions] = useState(0);
 
-  // Load voices
+  // Load and Map Voices
   useEffect(() => {
-    const loadVoices = () => {
-      const available = window.speechSynthesis.getVoices();
-      // Filter for English voices only to avoid cluttering with all languages
-      const englishVoices = available.filter(voice => voice.lang.startsWith('en'));
-      // Fallback to all voices if no English voices are detected (rare)
-      setVoices(englishVoices.length > 0 ? englishVoices : available);
+    const loadAndMapVoices = () => {
+      const allVoices = window.speechSynthesis.getVoices();
+      if (allVoices.length === 0) return;
+
+      const enVoices = allVoices.filter(v => v.lang.startsWith('en'));
+      // Fallback to all voices if no English voices
+      const pool = enVoices.length > 0 ? enVoices : allVoices;
+
+      // Helper to find specific voices by keyword preference
+      const pickVoice = (keywords: string[], genderHint: 'female' | 'male', exclude: SpeechSynthesisVoice[] = []): SpeechSynthesisVoice => {
+         // 1. Try exact name match from keywords
+         let match = pool.find(v => !exclude.includes(v) && keywords.some(k => v.name.toLowerCase().includes(k.toLowerCase())));
+         
+         // 2. Try gender hints in name (common in some systems)
+         if (!match) {
+             match = pool.find(v => !exclude.includes(v) && v.name.toLowerCase().includes(genderHint));
+         }
+
+         // 3. Fallback to any unused
+         if (!match) {
+             match = pool.find(v => !exclude.includes(v));
+         }
+
+         // 4. Absolute fallback
+         return match || pool[0];
+      };
+
+      // Define 5 Standard Slots
+      
+      // Slot 1: Female (Standard US/General)
+      const v1 = pickVoice(['Google US English', 'Samantha', 'Zira', 'Ava', 'Susan'], 'female', []);
+      
+      // Slot 2: Female (UK/Alternative)
+      const v2 = pickVoice(['Google UK English Female', 'Martha', 'Tessa', 'Victoria', 'Agnes'], 'female', [v1]);
+      
+      // Slot 3: Female (Aus/Other)
+      const v3 = pickVoice(['Google Español', 'Moira', 'Karen', 'Veena', 'Fiona'], 'female', [v1, v2]);
+
+      // Slot 4: Male (Standard UK/General)
+      const v4 = pickVoice(['Google UK English Male', 'Daniel', 'David', 'Arthur'], 'male', [v1, v2, v3]);
+      
+      // Slot 5: Male (US/Alternative)
+      const v5 = pickVoice(['Google US English', 'Fred', 'Alex', 'Rishi', 'Mark'], 'male', [v1, v2, v3, v4]);
+
+      setVoiceOptions([
+          { name: "Instructor 1 (Female)", voice: v1 },
+          { name: "Instructor 2 (Female)", voice: v2 },
+          { name: "Instructor 3 (Female)", voice: v3 },
+          { name: "Instructor 4 (Male)", voice: v4 },
+          { name: "Instructor 5 (Male)", voice: v5 },
+      ]);
     };
     
-    // Initial load
-    loadVoices();
-    
-    // Chrome requires this event for async voice loading
-    window.speechSynthesis.onvoiceschanged = loadVoices;
+    loadAndMapVoices();
+    window.speechSynthesis.onvoiceschanged = loadAndMapVoices;
     
     return () => {
       window.speechSynthesis.cancel();
@@ -47,8 +96,21 @@ export const ListeningPractice: React.FC = () => {
   }, []);
 
   const startGame = useCallback(async () => {
+    // Validate inputs
+    const d = parseInt(digitsInput);
+    const t = parseInt(termsInput);
+
+    // If inputs are empty or invalid, do not start
+    if (isNaN(d) || d < 1 || isNaN(t) || t < 2) {
+      return;
+    }
+
+    // Update main config to match inputs
+    const newConfig = { ...config, digits: d, terms: t };
+    setConfig(newConfig);
+
     stopRef.current = false;
-    const { sequence, expectedAnswer } = generateSequence(config.digits, config.terms, config.onlyPositive);
+    const { sequence, expectedAnswer } = generateSequence(newConfig.digits, newConfig.terms, newConfig.onlyPositive);
     setCurrentSequence(sequence);
     setExpectedAnswer(expectedAnswer);
     setGameState(GameState.PLAYING);
@@ -56,9 +118,8 @@ export const ListeningPractice: React.FC = () => {
     setUserAnswer('');
 
     // Calculate delay based on speed (faster speed = shorter delay)
-    // Base delay is 1000ms. If speed is 2.0, delay is 500ms.
-    const gapDelay = 1000 / (config.listeningSpeed || 1);
-    const opGap = 800 / (config.listeningSpeed || 1);
+    const gapDelay = 1000 / (newConfig.listeningSpeed || 1);
+    const opGap = 800 / (newConfig.listeningSpeed || 1);
 
     for (let i = 0; i < sequence.length; i++) {
       if (stopRef.current) break;
@@ -66,16 +127,22 @@ export const ListeningPractice: React.FC = () => {
       const item = sequence[i];
       
       if (i > 0) {
+        const prevItem = sequence[i - 1];
+        
         if (item.operation === '-') {
-            await speakText("Minus");
+            await speakText("Minus", newConfig);
+        } else if (item.operation === '+' && prevItem.operation === '-') {
+            // Only speak "Plus" if we are switching from a negative operation to a positive one
+            await speakText("Plus", newConfig);
         } else {
+             // Just a pause for consecutive additions
              await new Promise(resolve => setTimeout(resolve, opGap)); 
         }
       }
 
       if (stopRef.current) break;
 
-      await speakText(item.value.toString());
+      await speakText(item.value.toString(), newConfig);
       
       if (stopRef.current) break;
 
@@ -86,7 +153,7 @@ export const ListeningPractice: React.FC = () => {
       setIsPlaying(false);
       setGameState(GameState.INPUT);
     }
-  }, [config, voices]);
+  }, [config, digitsInput, termsInput, voiceOptions]);
 
   const stopGame = () => {
     stopRef.current = true;
@@ -95,18 +162,23 @@ export const ListeningPractice: React.FC = () => {
     setGameState(GameState.CONFIG);
   };
 
-  const speakText = (text: string): Promise<void> => {
+  const speakText = (text: string, currentConfig: MathConfig): Promise<void> => {
     return new Promise((resolve) => {
       if (stopRef.current) {
         resolve();
         return;
       }
+      
       const utterance = new SpeechSynthesisUtterance(text);
-      if (voices[config.voiceIndex || 0]) {
-        utterance.voice = voices[config.voiceIndex || 0];
+      
+      // Select voice from our mapped options
+      const selectedOption = voiceOptions[currentConfig.voiceIndex || 0];
+      if (selectedOption && selectedOption.voice) {
+        utterance.voice = selectedOption.voice;
       }
+      
       // Apply configured speed (0.5 to 2.0)
-      utterance.rate = config.listeningSpeed || 1.0;
+      utterance.rate = currentConfig.listeningSpeed || 1.0;
       
       utterance.onend = () => resolve();
       utterance.onerror = () => resolve(); 
@@ -158,8 +230,8 @@ export const ListeningPractice: React.FC = () => {
               <input
                 type="number"
                 min="1"
-                value={config.digits}
-                onChange={(e) => setConfig({...config, digits: Math.max(1, parseInt(e.target.value) || 0)})}
+                value={digitsInput}
+                onChange={(e) => setDigitsInput(e.target.value)}
                 className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-2xl font-bold text-center text-tusgu-blue dark:text-blue-300 focus:ring-2 focus:ring-tusgu-blue focus:border-transparent outline-none transition-all"
               />
             </div>
@@ -168,8 +240,8 @@ export const ListeningPractice: React.FC = () => {
               <input
                 type="number"
                 min="2"
-                value={config.terms}
-                onChange={(e) => setConfig({...config, terms: Math.max(2, parseInt(e.target.value) || 0)})}
+                value={termsInput}
+                onChange={(e) => setTermsInput(e.target.value)}
                 className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-2xl font-bold text-center text-tusgu-blue dark:text-blue-300 focus:ring-2 focus:ring-tusgu-blue focus:border-transparent outline-none transition-all"
               />
             </div>
@@ -217,7 +289,7 @@ export const ListeningPractice: React.FC = () => {
                 value={config.voiceIndex}
                 onChange={(e) => setConfig({...config, voiceIndex: parseInt(e.target.value)})}
               >
-                {voices.map((v, i) => (
+                {voiceOptions.map((v, i) => (
                   <option key={i} value={i}>{v.name}</option>
                 ))}
               </select>
@@ -225,6 +297,9 @@ export const ListeningPractice: React.FC = () => {
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
               </div>
             </div>
+            <p className="text-xs text-gray-400 mt-1 pl-1">
+               * Voices may vary slightly across different devices (Mobile vs PC).
+            </p>
           </div>
 
           <button 

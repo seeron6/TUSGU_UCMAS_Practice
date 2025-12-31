@@ -53,14 +53,14 @@ export const RequestPapers: React.FC = () => {
 
   if (status === 'SENT') {
     return (
-      <Layout title="Request Papers">
+      <Layout title="Enrollement Interest">
         <div className="flex flex-col items-center justify-center min-h-[50vh] glass-panel rounded-3xl shadow-soft p-12 text-center animate-in zoom-in-95 duration-300">
           <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6">
             <CheckCircle className="w-12 h-12 text-green-600" />
           </div>
           <h2 className="text-3xl font-bold text-tusgu-blue mb-4">Request Sent!</h2>
           <p className="text-slate-600 mb-8 text-lg max-w-md mx-auto leading-relaxed">
-            We have recorded your request for materials. We will contact you at <span className="font-bold text-slate-800">{formData.email}</span> when they are ready.
+            We have recorded your interest to join. We will contact you at <span className="font-bold text-slate-800">{formData.email}</span> when they are ready.
           </p>
           
           <div className="space-y-4 w-full max-w-xs">
@@ -88,12 +88,12 @@ export const RequestPapers: React.FC = () => {
   }
 
   return (
-    <Layout title="Request Papers">
+    <Layout title="Enrollement Interest">
       <div className="max-w-xl mx-auto glass-panel rounded-3xl shadow-soft p-10 border border-white/50 animate-in fade-in slide-in-from-bottom-8">
         <div className="mb-8 text-center">
           <h2 className="text-2xl font-bold text-slate-800 mb-2">Study Material Request</h2>
           <p className="text-slate-500">
-            Fill out the details below to request specific workbooks or practice sheets.
+            Fill out the details below for the student to be contacted for enrollement.
           </p>
         </div>
         
@@ -141,14 +141,14 @@ export const RequestPapers: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Requested Materials</label>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Preferred Location and Time</label>
             <textarea
               required
               rows={4}
               value={formData.materials}
               onChange={e => setFormData({...formData, materials: e.target.value})}
               className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl font-medium text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all placeholder-gray-300 resize-none"
-              placeholder="E.g., Grade 2 Mental Paper, Category A Paper ..."
+              placeholder="Location Options are 1100 Bellamy Road North, 3850 Finch Ave E Unit 301, 1275 Morningside Ave Unit 201"
             />
           </div>
 
