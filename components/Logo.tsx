@@ -32,8 +32,7 @@ export const Logo: React.FC<{ size?: 'sm' | 'lg', variant?: 'white' | 'blue' }> 
       
       // If valid click (not a long press), go to website or home
       if (!longPressTriggeredRef.current) {
-        // You can change this to navigate('/') if you want it to go to Dashboard
-        // navigate('/'); 
+        window.open('https://www.tusgu.org/', '_blank');
       }
     }
   };

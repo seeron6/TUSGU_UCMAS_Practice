@@ -43,17 +43,15 @@ export const deleteNews = async (id: string): Promise<void> => {
   }
 };
 
-export const submitRequest = async (request: RequestItem): Promise<void> => {
+export const submitRequest = async (data: { name: string; email: string; phone: string; materials: string }) => {
   const { error } = await supabase
     .from('requests')
     .insert([{ 
-      email: request.email, 
-      phone: request.phone, 
-      materials: request.materials 
+      name: data.name,
+      email: data.email, 
+      phone: data.phone, 
+      materials: data.materials 
     }]);
-
-  if (error) {
-    console.error('Error submitting request:', error);
-    throw error;
-  }
+  
+  if (error) throw error;
 };

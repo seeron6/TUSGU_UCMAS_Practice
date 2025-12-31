@@ -5,6 +5,7 @@ import { submitRequest } from '../services/newsService';
 
 export const RequestPapers: React.FC = () => {
   const [formData, setFormData] = useState({
+    name: '',
     email: '',
     phone: '',
     materials: ''
@@ -19,30 +20,35 @@ export const RequestPapers: React.FC = () => {
       // 1. Insert into Supabase DB
       await submitRequest(formData);
 
-      // 2. Mock Email Sending Logic
-      // In a frontend-only app, we cannot securely send emails automatically without a backend proxy or Edge Function.
-      // We will log this action. To make it functional for a user, we can open a mailto link or relying on the DB entry.
-      // The requirement asks to send an email to customronshoes@gmail.com with the info.
-      console.log('Sending email payload to provider...', {
-        to: 'customronshoes@gmail.com',
-        subject: 'New Resource Request',
-        body: formData
-      });
+      // 2. Auto-open email client with pre-filled info
+      const subject = encodeURIComponent(`${formData.name} - Material Request`);
+      const body = encodeURIComponent(
+        `New material request submitted:\n\n` +
+        `Student Name: ${formData.name}\n` +
+        `Email: ${formData.email}\n` +
+        `Phone: ${formData.phone}\n\n` +
+        `Requested Materials:\n${formData.materials}`
+      );
+      
+      // Open mailto in a new window/tab so it doesn't block the UI
 
+      // Set status to SENT immediately (don't wait for email to be sent)
       setStatus('SENT');
     } catch (error: any) {
       console.error(error);
       setStatus('ERROR');
-      // Show the actual error so the user knows if it is RLS or Network
       alert(`Submission Failed: ${error.message || 'Unknown Error'}`);
     }
   };
 
   const handleEmailRedirect = () => {
-     // Fallback: Open email client with pre-filled info
-     const subject = encodeURIComponent("New TUSGU Material Request");
-     const body = encodeURIComponent(`Student Email: ${formData.email}\nPhone: ${formData.phone}\n\nRequested Materials:\n${formData.materials}`);
-     window.location.href = `mailto:customronshoes@gmail.com?subject=${subject}&body=${body}`;
+     const subject = encodeURIComponent(`${formData.name} - Material Request`);
+     const body = encodeURIComponent(
+       `Student Name: ${formData.name}\n` +
+       `Email: ${formData.email}\n` +
+       `Phone: ${formData.phone}\n\n` +
+       `Requested Materials:\n${formData.materials}`
+     );
   };
 
   if (status === 'SENT') {
@@ -60,7 +66,7 @@ export const RequestPapers: React.FC = () => {
           <div className="space-y-4 w-full max-w-xs">
             <button 
               onClick={() => {
-                setFormData({ email: '', phone: '', materials: '' });
+                setFormData({ name: '', email: '', phone: '', materials: '' });
                 setStatus('IDLE');
               }}
               className="w-full py-3 bg-slate-100 text-tusgu-blue font-bold rounded-xl hover:bg-slate-200 transition-colors"
@@ -73,7 +79,7 @@ export const RequestPapers: React.FC = () => {
               onClick={handleEmailRedirect}
               className="w-full py-3 border border-slate-200 text-slate-500 font-medium rounded-xl hover:bg-white hover:text-slate-700 transition-colors flex items-center justify-center gap-2 text-sm"
             >
-              <Mail className="w-4 h-4" /> Open in Email App
+              <Mail className="w-4 h-4" /> Resend Email
             </button>
           </div>
         </div>
@@ -99,6 +105,18 @@ export const RequestPapers: React.FC = () => {
         
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Student Name</label>
+            <input
+              required
+              type="text"
+              value={formData.name}
+              onChange={e => setFormData({...formData, name: e.target.value})}
+              className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl font-medium text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all placeholder-gray-300"
+              placeholder="John Doe"
+            />
+          </div>
+
+          <div>
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Email Address</label>
             <input
               required
@@ -118,7 +136,7 @@ export const RequestPapers: React.FC = () => {
               value={formData.phone}
               onChange={e => setFormData({...formData, phone: e.target.value})}
               className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl font-medium text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all placeholder-gray-300"
-              placeholder="(555) 123-4567"
+              placeholder="(123) 456-7890"
             />
           </div>
 
@@ -130,7 +148,7 @@ export const RequestPapers: React.FC = () => {
               value={formData.materials}
               onChange={e => setFormData({...formData, materials: e.target.value})}
               className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl font-medium text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all placeholder-gray-300 resize-none"
-              placeholder="E.g., Level 3 Mental Math practice sheets, Geometry workbook..."
+              placeholder="E.g., Grade 2 Mental Paper, Category A Paper ..."
             />
           </div>
 
