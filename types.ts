@@ -1,3 +1,4 @@
+
 export interface MathConfig {
   digits: number;
   terms: number;
@@ -5,6 +6,7 @@ export interface MathConfig {
   listeningSpeed?: number; // For listening (TTS rate 0.5 - 2.0)
   voiceIndex?: number; // For listening
   fontSize?: 'small' | 'medium' | 'large'; // For flash
+  onlyPositive?: boolean; // If true, only addition operations are generated
 }
 
 export interface NewsItem {
