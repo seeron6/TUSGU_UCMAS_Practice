@@ -30,12 +30,6 @@ export const FlashPractice: React.FC = () => {
   const stopRef = useRef(false);
   const isMountedRef = useRef(true);
 
-  // Speed Options (ms) - Minimum 250ms
-  const speedOptions = [
-    250, 300, 350, 400, 450, 500, 600, 700, 800, 900, 1000, 
-    1200, 1500, 2000, 2500, 3000
-  ];
-
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
@@ -134,102 +128,119 @@ export const FlashPractice: React.FC = () => {
 
   // --- Renders ---
 
-  const renderConfig = () => (
-    <div className="glass-panel p-10 rounded-3xl shadow-soft max-w-lg mx-auto w-full animate-in zoom-in-95 duration-300 relative">
-      {totalQuestions > 0 && (
-          <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-white dark:bg-slate-800 shadow-md border border-slate-100 dark:border-slate-600 rounded-full px-6 py-2 flex items-center gap-2">
-            <Trophy className="w-4 h-4 text-yellow-500" />
-            <span className="font-bold text-slate-700 dark:text-slate-200">Score: {score} / {totalQuestions}</span>
-          </div>
-      )}
+  const renderConfig = () => {
+    // Speed levels 1-6 mapping to ms
+    // Level 1 = Slowest (2000ms)
+    // Level 6 = Fastest (250ms)
+    const speedLevels = [
+        { label: "Level 1 (Slowest)", ms: 2000 },
+        { label: "Level 2", ms: 1500 },
+        { label: "Level 3", ms: 1000 },
+        { label: "Level 4", ms: 700 },
+        { label: "Level 5", ms: 500 },
+        { label: "Level 6 (Fastest)", ms: 250 }
+    ];
+    
+    // Helper to find valid level value even if current config is slightly off
+    const currentSpeedValue = config.speed || 1000;
 
-      <h2 className="text-2xl font-bold text-tusgu-blue dark:text-blue-300 mb-8 flex items-center gap-3 pb-4 border-b border-gray-100 dark:border-slate-700">
-        <Settings className="w-6 h-6" /> 
-        <span>Setup Flash</span>
-      </h2>
-      
-      <div className="space-y-8">
-        <div className="grid grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Digits</label>
-             <input
-              type="number"
-              min="1"
-              value={digitsInput}
-              onChange={(e) => setDigitsInput(e.target.value)}
-              className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-2xl font-bold text-center text-tusgu-blue dark:text-blue-300 focus:ring-2 focus:ring-tusgu-blue outline-none transition-all"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Terms</label>
-            <input
-              type="number"
-              min="2"
-              value={termsInput}
-              onChange={(e) => setTermsInput(e.target.value)}
-              className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-2xl font-bold text-center text-tusgu-blue dark:text-blue-300 focus:ring-2 focus:ring-tusgu-blue outline-none transition-all"
-            />
-          </div>
-        </div>
-
-        {/* Addition Only Toggle */}
-        <div 
-          onClick={() => setConfig({ ...config, onlyPositive: !config.onlyPositive })}
-          className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl cursor-pointer hover:border-tusgu-blue dark:hover:border-blue-400 transition-colors group"
-        >
-            <div className="flex items-center gap-3">
-              <div className={`w-6 h-6 rounded-md flex items-center justify-center transition-colors ${config.onlyPositive ? 'bg-tusgu-blue text-white' : 'bg-gray-200 text-gray-400 dark:bg-slate-700'}`}>
-                {config.onlyPositive && <Check className="w-4 h-4" />}
-              </div>
-              <span className="font-bold text-slate-700 dark:text-slate-200">Addition Only</span>
+    return (
+      <div className="glass-panel p-10 rounded-3xl shadow-soft max-w-lg mx-auto w-full animate-in zoom-in-95 duration-300 relative">
+        {totalQuestions > 0 && (
+            <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-white dark:bg-slate-800 shadow-md border border-slate-100 dark:border-slate-600 rounded-full px-6 py-2 flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-yellow-500" />
+              <span className="font-bold text-slate-700 dark:text-slate-200">Score: {score} / {totalQuestions}</span>
             </div>
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              {config.onlyPositive ? 'On' : 'Off'}
-            </span>
-        </div>
+        )}
 
-        <div className="space-y-2">
-           <label className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Speed (ms)</label>
-           <div className="relative">
-              <select 
-                className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl appearance-none text-gray-700 dark:text-gray-200 font-medium focus:ring-2 focus:ring-tusgu-blue outline-none transition-all"
-                value={config.speed || 1000}
-                onChange={(e) => setConfig({...config, speed: parseInt(e.target.value)})}
-              >
-                {speedOptions.map((s) => (
-                  <option key={s} value={s}>{s} ms</option>
-                ))}
-              </select>
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+        <h2 className="text-2xl font-bold text-tusgu-blue dark:text-blue-300 mb-8 flex items-center gap-3 pb-4 border-b border-gray-100 dark:border-slate-700">
+          <Settings className="w-6 h-6" /> 
+          <span>Setup Flash</span>
+        </h2>
+        
+        <div className="space-y-8">
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Digits</label>
+               <input
+                type="number"
+                min="1"
+                value={digitsInput}
+                onChange={(e) => setDigitsInput(e.target.value)}
+                className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-2xl font-bold text-center text-tusgu-blue dark:text-blue-300 focus:ring-2 focus:ring-tusgu-blue outline-none transition-all"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Terms</label>
+              <input
+                type="number"
+                min="2"
+                value={termsInput}
+                onChange={(e) => setTermsInput(e.target.value)}
+                className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-2xl font-bold text-center text-tusgu-blue dark:text-blue-300 focus:ring-2 focus:ring-tusgu-blue outline-none transition-all"
+              />
+            </div>
+          </div>
+
+          {/* Addition Only Toggle */}
+          <div 
+            onClick={() => setConfig({ ...config, onlyPositive: !config.onlyPositive })}
+            className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl cursor-pointer hover:border-tusgu-blue dark:hover:border-blue-400 transition-colors group"
+          >
+              <div className="flex items-center gap-3">
+                <div className={`w-6 h-6 rounded-md flex items-center justify-center transition-colors ${config.onlyPositive ? 'bg-tusgu-blue text-white' : 'bg-gray-200 text-gray-400 dark:bg-slate-700'}`}>
+                  {config.onlyPositive && <Check className="w-4 h-4" />}
+                </div>
+                <span className="font-bold text-slate-700 dark:text-slate-200">Addition Only</span>
               </div>
-           </div>
-        </div>
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                {config.onlyPositive ? 'On' : 'Off'}
+              </span>
+          </div>
 
-        <div className="space-y-2">
-           <label className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Font Size</label>
-           <div className="flex gap-2 bg-gray-50 dark:bg-slate-800 p-1 rounded-xl">
-             {['small', 'medium', 'large'].map((s) => (
-               <button
-                 key={s}
-                 onClick={() => setConfig({...config, fontSize: s as any})}
-                 className={`flex-1 py-3 capitalize rounded-lg text-sm font-bold transition-all ${config.fontSize === s ? 'bg-white dark:bg-slate-700 text-tusgu-blue dark:text-blue-300 shadow-sm' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
-               >
-                 {s}
-               </button>
-             ))}
-           </div>
-        </div>
+          <div className="space-y-2">
+             <label className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Speed</label>
+             <div className="relative">
+                <select 
+                  className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl appearance-none text-gray-700 dark:text-gray-200 font-medium focus:ring-2 focus:ring-tusgu-blue outline-none transition-all"
+                  value={speedLevels.find(l => l.ms === currentSpeedValue)?.ms || 1000}
+                  onChange={(e) => setConfig({...config, speed: parseInt(e.target.value)})}
+                >
+                  {speedLevels.map((s) => (
+                    <option key={s.ms} value={s.ms}>{s.label}</option>
+                  ))}
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+                </div>
+             </div>
+          </div>
 
-        <button 
-          onClick={startGame}
-          className="w-full bg-gradient-to-r from-tusgu-blue to-blue-800 text-white py-5 rounded-2xl font-bold text-lg hover:shadow-lg hover:shadow-blue-900/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
-        >
-          <Play className="w-6 h-6 fill-current" /> Start Flash
-        </button>
+          <div className="space-y-2">
+             <label className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Font Size</label>
+             <div className="flex gap-2 bg-gray-50 dark:bg-slate-800 p-1 rounded-xl">
+               {['small', 'medium', 'large'].map((s) => (
+                 <button
+                   key={s}
+                   onClick={() => setConfig({...config, fontSize: s as any})}
+                   className={`flex-1 py-3 capitalize rounded-lg text-sm font-bold transition-all ${config.fontSize === s ? 'bg-white dark:bg-slate-700 text-tusgu-blue dark:text-blue-300 shadow-sm' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+                 >
+                   {s}
+                 </button>
+               ))}
+             </div>
+          </div>
+
+          <button 
+            onClick={startGame}
+            className="w-full bg-gradient-to-r from-tusgu-blue to-blue-800 text-white py-5 rounded-2xl font-bold text-lg hover:shadow-lg hover:shadow-blue-900/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+          >
+            <Play className="w-6 h-6 fill-current" /> Start Flash
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderPlaying = () => (
     <div className="relative flex flex-col items-center justify-center h-[65vh] w-full max-w-4xl mx-auto bg-white rounded-[2.5rem] shadow-soft border border-white/50 overflow-hidden">

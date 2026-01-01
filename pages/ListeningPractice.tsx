@@ -19,7 +19,7 @@ export const ListeningPractice: React.FC = () => {
   const [digitsInput, setDigitsInput] = useState<string>('1');
   const [termsInput, setTermsInput] = useState<string>('5');
   
-  // Custom mapped voices to ensure consistency (3 Female, 2 Male target)
+  // Custom mapped voices to ensure consistency (5 Female, 5 Male)
   const [voiceOptions, setVoiceOptions] = useState<{name: string, voice: SpeechSynthesisVoice | null}[]>([]);
   
   const [currentSequence, setCurrentSequence] = useState<MathSequenceItem[]>([]);
@@ -61,29 +61,35 @@ export const ListeningPractice: React.FC = () => {
          return match || pool[0];
       };
 
-      // Define 5 Standard Slots
-      
-      // Slot 1: Female (Standard US/General)
-      const v1 = pickVoice(['Google US English', 'Samantha', 'Zira', 'Ava', 'Susan'], 'female', []);
-      
-      // Slot 2: Female (UK/Alternative)
-      const v2 = pickVoice(['Google UK English Female', 'Martha', 'Tessa', 'Victoria', 'Agnes'], 'female', [v1]);
-      
-      // Slot 3: Female (Aus/Other)
-      const v3 = pickVoice(['Google Español', 'Moira', 'Karen', 'Veena', 'Fiona'], 'female', [v1, v2]);
+      // Define 10 Standard Slots
+      const used: SpeechSynthesisVoice[] = [];
 
-      // Slot 4: Male (Standard UK/General)
-      const v4 = pickVoice(['Google UK English Male', 'Daniel', 'David', 'Arthur'], 'male', [v1, v2, v3]);
-      
-      // Slot 5: Male (US/Alternative)
-      const v5 = pickVoice(['Google US English', 'Fred', 'Alex', 'Rishi', 'Mark'], 'male', [v1, v2, v3, v4]);
+      // Females
+      const f1 = pickVoice(['Google US English', 'Samantha', 'Zira', 'Ava'], 'female', used); if(f1) used.push(f1);
+      const f2 = pickVoice(['Google UK English Female', 'Martha', 'Serena'], 'female', used); if(f2) used.push(f2);
+      const f3 = pickVoice(['Moira', 'Tessa', 'Fiona', 'Veena'], 'female', used); if(f3) used.push(f3);
+      const f4 = pickVoice(['Susan', 'Vicki', 'Karen'], 'female', used); if(f4) used.push(f4);
+      const f5 = pickVoice(['Google Español', 'Monica', 'Amelie'], 'female', used); if(f5) used.push(f5);
+
+      // Males
+      const m1 = pickVoice(['Google UK English Male', 'Daniel'], 'male', used); if(m1) used.push(m1);
+      const m2 = pickVoice(['Google US English', 'Alex', 'Fred'], 'male', used); if(m2) used.push(m2);
+      const m3 = pickVoice(['Rishi', 'David', 'Arthur'], 'male', used); if(m3) used.push(m3);
+      const m4 = pickVoice(['Mark', 'Bruce', 'Ralph'], 'male', used); if(m4) used.push(m4);
+      // Changed m5 from novelty voices (Junior/Albert) to professional options
+      const m5 = pickVoice(['Microsoft James', 'Tom', 'Evan', 'Nathan'], 'male', used); if(m5) used.push(m5);
 
       setVoiceOptions([
-          { name: "Instructor 1 (Female)", voice: v1 },
-          { name: "Instructor 2 (Female)", voice: v2 },
-          { name: "Instructor 3 (Female)", voice: v3 },
-          { name: "Instructor 4 (Male)", voice: v4 },
-          { name: "Instructor 5 (Male)", voice: v5 },
+          { name: "Instructor 1 (Female)", voice: f1 },
+          { name: "Instructor 2 (Female)", voice: f2 },
+          { name: "Instructor 3 (Female)", voice: f3 },
+          { name: "Instructor 4 (Female)", voice: f4 },
+          { name: "Instructor 5 (Female)", voice: f5 },
+          { name: "Instructor 6 (Male)", voice: m1 },
+          { name: "Instructor 7 (Male)", voice: m2 },
+          { name: "Instructor 8 (Male)", voice: m3 },
+          { name: "Instructor 9 (Male)", voice: m4 },
+          { name: "Instructor 10 (Male)", voice: m5 },
       ]);
     };
     
@@ -118,8 +124,8 @@ export const ListeningPractice: React.FC = () => {
     setUserAnswer('');
 
     // Calculate delay based on speed (faster speed = shorter delay)
-    const gapDelay = 1000 / (newConfig.listeningSpeed || 1);
-    const opGap = 800 / (newConfig.listeningSpeed || 1);
+    const gapDelay = 500 / (newConfig.listeningSpeed || 1);
+    const opGap = 850 / (newConfig.listeningSpeed || 1);
 
     for (let i = 0; i < sequence.length; i++) {
       if (stopRef.current) break;
@@ -207,7 +213,18 @@ export const ListeningPractice: React.FC = () => {
   // --- Renders ---
 
   const renderConfig = () => {
-    const speeds = [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 2.0];
+    // Map levels 1-6 to TTS rates 1.0 - 2.0
+    const speedLevels = [
+        { label: "Level 1 (Normal)", value: 1.0 },
+        { label: "Level 2", value: 1.2 },
+        { label: "Level 3", value: 1.4 },
+        { label: "Level 4", value: 1.6 },
+        { label: "Level 5", value: 1.8 },
+        { label: "Level 6 (Fastest)", value: 2.0 }
+    ];
+
+    // Helper to find valid level value even if current config is slightly off
+    const currentSpeedValue = config.listeningSpeed || 1.0;
 
     return (
       <div className="glass-panel p-10 rounded-3xl shadow-soft max-w-lg mx-auto w-full animate-in zoom-in-95 duration-300 dark:border-slate-700 relative">
@@ -268,11 +285,11 @@ export const ListeningPractice: React.FC = () => {
              <div className="relative">
                 <select 
                   className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl appearance-none text-gray-700 dark:text-gray-200 font-medium focus:ring-2 focus:ring-tusgu-blue outline-none transition-all"
-                  value={config.listeningSpeed}
+                  value={speedLevels.find(l => Math.abs(l.value - currentSpeedValue) < 0.1)?.value || 1.0}
                   onChange={(e) => setConfig({...config, listeningSpeed: parseFloat(e.target.value)})}
                 >
-                  {speeds.map((s) => (
-                    <option key={s} value={s}>{s.toFixed(1)}x</option>
+                  {speedLevels.map((s) => (
+                    <option key={s.value} value={s.value}>{s.label}</option>
                   ))}
                 </select>
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
@@ -298,7 +315,7 @@ export const ListeningPractice: React.FC = () => {
               </div>
             </div>
             <p className="text-xs text-gray-400 mt-1 pl-1">
-               * Voices may vary slightly across different devices (Mobile vs PC).
+               * Voices may vary slightly across different devices.
             </p>
           </div>
 
