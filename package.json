@@ -6,9 +6,15 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cap:sync": "cap sync",
+    "cap:android": "cap open android",
+    "cap:ios": "cap open ios"
   },
   "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/ios": "^6.0.0",
     "@supabase/supabase-js": "^2.39.7",
     "lucide-react": "^0.344.0",
     "react": "^18.2.0",
@@ -16,9 +22,9 @@
     "react-router-dom": "^6.22.3"
   },
   "devDependencies": {
-    "@types/node": "^25.0.3",
-    "@types/react": "^18.3.1",
-    "@types/react-dom": "^18.3.1",
+    "@capacitor/cli": "^6.0.0",
+    "@types/react": "^18.2.64",
+    "@types/react-dom": "^18.2.21",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.18",
     "postcss": "^8.4.35",

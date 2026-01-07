@@ -2,10 +2,14 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>TUSGU Educational Services</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- 1. Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. Tailwind Configuration -->
     <script>
       tailwind.config = {
         darkMode: 'class',
@@ -13,7 +17,7 @@
           extend: {
             colors: {
               tusgu: {
-                blue: '#000080', // Navy Blue
+                blue: '#000080',
                 dark: '#000050',
                 light: '#eef2ff',
                 accent: '#2563eb'
@@ -30,31 +34,42 @@
         }
       }
     </script>
+
+    <!-- 3. Custom CSS Styles -->
     <style>
+      /* Body & Backgrounds */
       body {
         background-color: #f8fafc;
         background-image: radial-gradient(#e0e7ff 1px, transparent 1px);
         background-size: 24px 24px;
         transition: background-color 0.3s ease, color 0.3s ease;
+        margin: 0;
+        
+        /* Capacitor / Mobile Safe Areas */
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
       }
-      
+
       .dark body {
         background-color: #0f172a;
         background-image: radial-gradient(#1e293b 1px, transparent 1px);
       }
 
+      /* Glass Panel Effect */
       .glass-panel {
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(10px);
         border: 1px solid rgba(255, 255, 255, 0.5);
       }
-      
+
       .dark .glass-panel {
         background: rgba(30, 41, 59, 0.95);
         border: 1px solid rgba(255, 255, 255, 0.1);
       }
 
-      /* Custom scrollbar */
+      /* Custom Scrollbar */
       ::-webkit-scrollbar {
         width: 8px;
       }
@@ -71,24 +86,64 @@
       ::-webkit-scrollbar-thumb:hover {
         background: #94a3b8;
       }
+
+      /* Animations */
+      .animate-in {
+        animation-fill-mode: both;
+        animation-duration: 500ms; 
+        animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .duration-300 { animation-duration: 300ms; }
+      .duration-500 { animation-duration: 500ms; }
+      .duration-700 { animation-duration: 700ms; }
+      
+      .fade-in { animation-name: fadeIn; }
+      .slide-in-from-bottom-4 { animation-name: slideInBottomSm; }
+      .slide-in-from-bottom-8 { animation-name: slideInBottomMd; }
+      .zoom-in-95 { animation-name: zoomIn95; }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      @keyframes slideInBottomSm {
+        from { transform: translateY(1rem); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+
+      @keyframes slideInBottomMd {
+        from { transform: translateY(2rem); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+
+      @keyframes zoomIn95 {
+        from { transform: scale(0.95); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+      }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-router-dom": "https://esm.sh/react-router-dom@^7.11.0",
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.0",
-    "@google/genai": "https://esm.sh/@google/genai@^1.34.0"
-  }
-}
-</script>
-<link rel="stylesheet" href="/index.css">
-</head>
+
+    <script type="importmap">
+    {
+      "imports": {
+        "react-router-dom": "https://esm.sh/react-router-dom@^7.11.0",
+        "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+        "react/": "https://esm.sh/react@^19.2.3/",
+        "react": "https://esm.sh/react@^19.2.3",
+        "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+        "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+        "tailwindcss": "https://esm.sh/tailwindcss@^4.1.18",
+        "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.89.0",
+        "vite": "https://esm.sh/vite@^7.3.0",
+        "autoprefixer": "https://esm.sh/autoprefixer@^10.4.23",
+        "@capacitor/cli": "https://esm.sh/@capacitor/cli@^8.0.0"
+      }
+    }
+    </script>
+  </head>
   <body>
     <div id="root"></div>
-  <script type="module" src="/index.tsx"></script>
-</body>
+    <script type="module" src="./index.tsx"></script>
+  </body>
 </html>
