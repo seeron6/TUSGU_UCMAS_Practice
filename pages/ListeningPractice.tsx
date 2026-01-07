@@ -3,6 +3,8 @@ import { Layout } from '../components/Layout';
 import { GameState, MathConfig, MathSequenceItem } from '../types';
 import { generateSequence } from '../services/mathUtils';
 import { Volume2, Play, RefreshCw, Settings, Square, Trophy, Check } from 'lucide-react';
+import { TextToSpeech } from '@capacitor-community/text-to-speech';
+import { Capacitor } from '@capacitor/core';
 
 export const ListeningPractice: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.CONFIG);
@@ -19,8 +21,8 @@ export const ListeningPractice: React.FC = () => {
   const [digitsInput, setDigitsInput] = useState<string>('1');
   const [termsInput, setTermsInput] = useState<string>('5');
   
-  // Custom mapped voices to ensure consistency (5 Female, 5 Male)
-  const [voiceOptions, setVoiceOptions] = useState<{name: string, voice: SpeechSynthesisVoice | null}[]>([]);
+  // Custom mapped voices
+  const [voiceOptions, setVoiceOptions] = useState<{name: string, voiceIndex: number}[]>([]);
   
   const [currentSequence, setCurrentSequence] = useState<MathSequenceItem[]>([]);
   const [expectedAnswer, setExpectedAnswer] = useState<number>(0);
@@ -34,84 +36,84 @@ export const ListeningPractice: React.FC = () => {
 
   // Load and Map Voices
   useEffect(() => {
-    const loadAndMapVoices = () => {
-      const allVoices = window.speechSynthesis.getVoices();
-      if (allVoices.length === 0) return;
+    const loadAndMapVoices = async () => {
+      try {
+        const result = await TextToSpeech.getSupportedVoices();
+        const allVoices = result.voices;
+        
+        // Helper to find index in the voices array
+        const findVoiceIndex = (keywords: string[], genderHint: string, excludeIndices: number[] = []): number => {
+          let idx = allVoices.findIndex((v, i) => !excludeIndices.includes(i) && keywords.some(k => v.name.toLowerCase().includes(k.toLowerCase())));
+          
+          if (idx === -1) {
+            // Try to match gender if possible (Note: standard plugin response might not have explicit gender field in all versions, relying on name)
+             idx = allVoices.findIndex((v, i) => !excludeIndices.includes(i) && v.name.toLowerCase().includes(genderHint));
+          }
+          
+          if (idx === -1) {
+             // Fallback to any English voice
+             idx = allVoices.findIndex((v, i) => !excludeIndices.includes(i) && v.lang.startsWith('en'));
+          }
 
-      const enVoices = allVoices.filter(v => v.lang.startsWith('en'));
-      // Fallback to all voices if no English voices
-      const pool = enVoices.length > 0 ? enVoices : allVoices;
+          if (idx === -1) return -1;
+          return idx;
+        };
 
-      // Helper to find specific voices by keyword preference
-      const pickVoice = (keywords: string[], genderHint: 'female' | 'male', exclude: SpeechSynthesisVoice[] = []): SpeechSynthesisVoice => {
-         // 1. Try exact name match from keywords
-         let match = pool.find(v => !exclude.includes(v) && keywords.some(k => v.name.toLowerCase().includes(k.toLowerCase())));
-         
-         // 2. Try gender hints in name (common in some systems)
-         if (!match) {
-             match = pool.find(v => !exclude.includes(v) && v.name.toLowerCase().includes(genderHint));
-         }
+        const usedIndices: number[] = [];
+        const slots: {name: string, voiceIndex: number}[] = [];
 
-         // 3. Fallback to any unused
-         if (!match) {
-             match = pool.find(v => !exclude.includes(v));
-         }
+        // Define our desired instructor slots
+        const definitions = [
+          { label: "Instructor 1 (Female)", keywords: ['Samantha', 'Zira', 'Ava', 'Google US English'], gender: 'female' },
+          { label: "Instructor 2 (Female)", keywords: ['Martha', 'Serena', 'Google UK English Female'], gender: 'female' },
+          { label: "Instructor 3 (Female)", keywords: ['Moira', 'Tessa', 'Fiona'], gender: 'female' },
+          { label: "Instructor 4 (Female)", keywords: ['Susan', 'Vicki', 'Karen'], gender: 'female' },
+          { label: "Instructor 5 (Female)", keywords: ['Monica', 'Amelie'], gender: 'female' },
+          { label: "Instructor 6 (Male)", keywords: ['Daniel', 'Google UK English Male'], gender: 'male' },
+          { label: "Instructor 7 (Male)", keywords: ['Alex', 'Fred', 'Google US English'], gender: 'male' },
+          { label: "Instructor 8 (Male)", keywords: ['Rishi', 'David'], gender: 'male' },
+          { label: "Instructor 9 (Male)", keywords: ['Mark', 'Bruce'], gender: 'male' },
+          { label: "Instructor 10 (Male)", keywords: ['James', 'Tom'], gender: 'male' },
+        ];
 
-         // 4. Absolute fallback
-         return match || pool[0];
-      };
+        definitions.forEach(def => {
+          const idx = findVoiceIndex(def.keywords, def.gender, usedIndices);
+          if (idx !== -1) {
+            usedIndices.push(idx);
+            slots.push({ name: def.label, voiceIndex: idx });
+          } else {
+            // Fallback if we run out of unique voices, reuse first available or just placeholder
+            if (allVoices.length > 0) {
+               slots.push({ name: def.label, voiceIndex: 0 }); 
+            }
+          }
+        });
+        
+        // If we found nothing (e.g. no permissions or empty list), set empty or default
+        if (slots.length === 0 && allVoices.length > 0) {
+           slots.push({ name: "Default Voice", voiceIndex: 0 });
+        }
 
-      // Define 10 Standard Slots
-      const used: SpeechSynthesisVoice[] = [];
-
-      // Females
-      const f1 = pickVoice(['Google US English', 'Samantha', 'Zira', 'Ava'], 'female', used); if(f1) used.push(f1);
-      const f2 = pickVoice(['Google UK English Female', 'Martha', 'Serena'], 'female', used); if(f2) used.push(f2);
-      const f3 = pickVoice(['Moira', 'Tessa', 'Fiona', 'Veena'], 'female', used); if(f3) used.push(f3);
-      const f4 = pickVoice(['Susan', 'Vicki', 'Karen'], 'female', used); if(f4) used.push(f4);
-      const f5 = pickVoice(['Google Español', 'Monica', 'Amelie'], 'female', used); if(f5) used.push(f5);
-
-      // Males
-      const m1 = pickVoice(['Google UK English Male', 'Daniel'], 'male', used); if(m1) used.push(m1);
-      const m2 = pickVoice(['Google US English', 'Alex', 'Fred'], 'male', used); if(m2) used.push(m2);
-      const m3 = pickVoice(['Rishi', 'David', 'Arthur'], 'male', used); if(m3) used.push(m3);
-      const m4 = pickVoice(['Mark', 'Bruce', 'Ralph'], 'male', used); if(m4) used.push(m4);
-      // Changed m5 from novelty voices (Junior/Albert) to professional options
-      const m5 = pickVoice(['Microsoft James', 'Tom', 'Evan', 'Nathan'], 'male', used); if(m5) used.push(m5);
-
-      setVoiceOptions([
-          { name: "Instructor 1 (Female)", voice: f1 },
-          { name: "Instructor 2 (Female)", voice: f2 },
-          { name: "Instructor 3 (Female)", voice: f3 },
-          { name: "Instructor 4 (Female)", voice: f4 },
-          { name: "Instructor 5 (Female)", voice: f5 },
-          { name: "Instructor 6 (Male)", voice: m1 },
-          { name: "Instructor 7 (Male)", voice: m2 },
-          { name: "Instructor 8 (Male)", voice: m3 },
-          { name: "Instructor 9 (Male)", voice: m4 },
-          { name: "Instructor 10 (Male)", voice: m5 },
-      ]);
+        setVoiceOptions(slots);
+      } catch (e) {
+        console.error("Failed to load TTS voices", e);
+      }
     };
-    
+
     loadAndMapVoices();
-    window.speechSynthesis.onvoiceschanged = loadAndMapVoices;
     
-    return () => {
-      window.speechSynthesis.cancel();
-    };
+    // For web compatibility, we might want to listen to changes, but Capacitor plugin doesn't have a direct 'onvoiceschanged' listener exposed easily in the same way.
+    // Usually fetching once on mount is sufficient for native.
   }, []);
 
   const startGame = useCallback(async () => {
-    // Validate inputs
     const d = parseInt(digitsInput);
     const t = parseInt(termsInput);
 
-    // If inputs are empty or invalid, do not start
     if (isNaN(d) || d < 1 || isNaN(t) || t < 2) {
       return;
     }
 
-    // Update main config to match inputs
     const newConfig = { ...config, digits: d, terms: t };
     setConfig(newConfig);
 
@@ -123,9 +125,8 @@ export const ListeningPractice: React.FC = () => {
     setIsPlaying(true);
     setUserAnswer('');
 
-    // Calculate delay based on speed (faster speed = shorter delay)
-    const gapDelay = 500 / (newConfig.listeningSpeed || 1);
-    const opGap = 850 / (newConfig.listeningSpeed || 1);
+    const gapDelay = 1000 / (newConfig.listeningSpeed || 1);
+    const opGap = 800 / (newConfig.listeningSpeed || 1);
 
     for (let i = 0; i < sequence.length; i++) {
       if (stopRef.current) break;
@@ -138,10 +139,8 @@ export const ListeningPractice: React.FC = () => {
         if (item.operation === '-') {
             await speakText("Minus", newConfig);
         } else if (item.operation === '+' && prevItem.operation === '-') {
-            // Only speak "Plus" if we are switching from a negative operation to a positive one
             await speakText("Plus", newConfig);
         } else {
-             // Just a pause for consecutive additions
              await new Promise(resolve => setTimeout(resolve, opGap)); 
         }
       }
@@ -161,35 +160,41 @@ export const ListeningPractice: React.FC = () => {
     }
   }, [config, digitsInput, termsInput, voiceOptions]);
 
-  const stopGame = () => {
+  const stopGame = async () => {
     stopRef.current = true;
-    window.speechSynthesis.cancel();
+    try {
+      await TextToSpeech.stop();
+    } catch (e) {
+      console.warn("Error stopping TTS", e);
+    }
     setIsPlaying(false);
     setGameState(GameState.CONFIG);
   };
 
-  const speakText = (text: string, currentConfig: MathConfig): Promise<void> => {
-    return new Promise((resolve) => {
-      if (stopRef.current) {
-        resolve();
-        return;
-      }
-      
-      const utterance = new SpeechSynthesisUtterance(text);
-      
-      // Select voice from our mapped options
-      const selectedOption = voiceOptions[currentConfig.voiceIndex || 0];
-      if (selectedOption && selectedOption.voice) {
-        utterance.voice = selectedOption.voice;
-      }
-      
-      // Apply configured speed (0.5 to 2.0)
-      utterance.rate = currentConfig.listeningSpeed || 1.0;
-      
-      utterance.onend = () => resolve();
-      utterance.onerror = () => resolve(); 
-      window.speechSynthesis.speak(utterance);
-    });
+  const speakText = async (text: string, currentConfig: MathConfig): Promise<void> => {
+    if (stopRef.current) return;
+    
+    const selectedOption = voiceOptions[currentConfig.voiceIndex || 0];
+    const voiceIdx = selectedOption ? selectedOption.voiceIndex : 0;
+    
+    // Adjust rate for platform differences if necessary. 
+    // Capacitor TTS: 1.0 is standard.
+    const rate = currentConfig.listeningSpeed || 1.0;
+
+    try {
+      await TextToSpeech.speak({
+        text: text,
+        lang: 'en-US', // Default fallback
+        rate: rate,
+        voice: voiceIdx,
+        volume: 1.0,
+        category: 'ambient', // 'ambient' allows mixing, but on iOS for educational apps 'playback' is often better implied by the plugin
+      });
+    } catch (e) {
+      console.error("TTS Error:", e);
+      // Fallback delay if sound fails so game doesn't rush
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
   };
 
   const checkAnswer = () => {
@@ -213,7 +218,6 @@ export const ListeningPractice: React.FC = () => {
   // --- Renders ---
 
   const renderConfig = () => {
-    // Map levels 1-6 to TTS rates 1.0 - 2.0
     const speedLevels = [
         { label: "Level 1 (Normal)", value: 1.0 },
         { label: "Level 2", value: 1.2 },
@@ -223,7 +227,6 @@ export const ListeningPractice: React.FC = () => {
         { label: "Level 6 (Fastest)", value: 2.0 }
     ];
 
-    // Helper to find valid level value even if current config is slightly off
     const currentSpeedValue = config.listeningSpeed || 1.0;
 
     return (
