@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { NewsItem, RequestItem } from '../types';
+import { NewsItem } from '../types';
 
 export const getNews = async (): Promise<NewsItem[]> => {
   const { data, error } = await supabase
@@ -43,15 +43,13 @@ export const deleteNews = async (id: string): Promise<void> => {
   }
 };
 
-export const submitRequest = async (data: { name: string; email: string; phone: string; materials: string }) => {
+export const submitRequest = async (data: { email: string; phone: string; materials: string }): Promise<void> => {
   const { error } = await supabase
     .from('requests')
-    .insert([{ 
-      name: data.name,
-      email: data.email, 
-      phone: data.phone, 
-      materials: data.materials 
-    }]);
+    .insert([data]);
   
-  if (error) throw error;
+  if (error) {
+    console.error('Error submitting request:', error);
+    throw error;
+  }
 };

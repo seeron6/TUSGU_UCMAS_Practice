@@ -40,7 +40,7 @@ export const FlashPractice: React.FC = () => {
 
   const getFontSize = () => {
     switch(config.fontSize) {
-      case 'small': return 'text-6xl';
+      case 'small': return 'text-8xl';
       case 'large': return 'text-[10rem]';
       default: return 'text-9xl';
     }

@@ -3,7 +3,7 @@ import { Layout } from '../components/Layout';
 import { addNews, getNews, deleteNews } from '../services/newsService';
 import { NewsItem } from '../types';
 import { useNavigate } from 'react-router-dom';
-import { PlusCircle, Loader, Lock, Trash2, Calendar, LayoutList, PenTool } from 'lucide-react';
+import { PlusCircle, Loader, Lock, Trash2, Calendar, LayoutList, PenTool, Link as LinkIcon } from 'lucide-react';
 
 export const AdminNews: React.FC = () => {
   const navigate = useNavigate();
@@ -69,7 +69,7 @@ export const AdminNews: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this announcement? This cannot be undone.')) return;
+    if (!window.confirm('Are you sure you want to delete this item? This cannot be undone.')) return;
     
     try {
       await deleteNews(id);
@@ -140,30 +140,30 @@ export const AdminNews: React.FC = () => {
         {activeTab === 'create' && (
           <div className="glass-panel p-8 rounded-3xl shadow-soft max-w-2xl mx-auto border border-white/50 dark:border-slate-700">
             <div className="mb-6 pb-4 border-b border-gray-100 dark:border-slate-700">
-               <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Post Announcement</h2>
-               <p className="text-slate-400 text-sm mt-1">Updates appear on the News Board instantly.</p>
+               <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Post Update</h2>
+               <p className="text-slate-400 text-sm mt-1">Post a text update or paste a Facebook link.</p>
             </div>
             
             <form onSubmit={handlePost} className="space-y-6">
               <div className="space-y-2">
-                <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Headline</label>
+                <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Headline / Title</label>
                 <input 
                   type="text" 
                   className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl font-semibold text-slate-800 dark:text-white focus:ring-2 focus:ring-tusgu-blue outline-none transition-all"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Center Holiday Closures"
+                  placeholder="e.g. New Schedule or Facebook Post"
                   disabled={isSubmitting}
                 />
               </div>
               <div className="space-y-2">
-                <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Content</label>
+                <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide">Link OR Text Content</label>
                 <textarea 
-                  rows={6}
+                  rows={4}
                   className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-tusgu-blue outline-none transition-all resize-none"
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  placeholder="Enter all details here..."
+                  placeholder="Paste a Facebook link here (https://facebook.com/...) OR write a message."
                   disabled={isSubmitting}
                 />
               </div>
@@ -191,20 +191,21 @@ export const AdminNews: React.FC = () => {
              {isLoading ? (
                <div className="text-center py-20"><Loader className="w-8 h-8 animate-spin mx-auto text-tusgu-blue" /></div>
              ) : newsList.length === 0 ? (
-               <div className="text-center py-12 text-slate-400 glass-panel rounded-2xl">No announcements found.</div>
+               <div className="text-center py-12 text-slate-400 glass-panel rounded-2xl">No items found.</div>
              ) : (
                newsList.map((item) => (
                  <div key={item.id} className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex justify-between items-center group">
-                   <div>
-                     <h3 className="font-bold text-slate-800 dark:text-white text-lg">{item.title}</h3>
+                   <div className="overflow-hidden">
+                     <h3 className="font-bold text-slate-800 dark:text-white text-lg truncate pr-4">{item.title}</h3>
                      <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
                        <Calendar className="w-3 h-3" /> {item.created_at}
+                       {item.content.startsWith('http') && <><LinkIcon className="w-3 h-3 ml-2" /> Link</>}
                      </div>
                    </div>
                    <button 
                     onClick={() => handleDelete(item.id)}
-                    className="p-3 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
-                    title="Delete Announcement"
+                    className="p-3 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all flex-shrink-0"
+                    title="Delete Item"
                    >
                      <Trash2 className="w-5 h-5" />
                    </button>

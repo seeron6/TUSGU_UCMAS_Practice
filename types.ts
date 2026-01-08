@@ -13,13 +13,7 @@ export interface NewsItem {
   id: string;
   title: string;
   created_at: string;
-  content: string;
-}
-
-export interface RequestItem {
-  email: string;
-  phone: string;
-  materials: string;
+  content: string; // This can now be plain text OR a URL
 }
 
 export interface MathSequenceItem {
