@@ -63,7 +63,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, showHome = true
       
       {/* Footer */}
       <footer className="bg-slate-100 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 py-6 text-center text-xs font-medium uppercase tracking-widest border-t border-slate-200 dark:border-slate-800 transition-colors duration-300">
-        <p>© {new Date().getFullYear()} TUSGU Educational Services</p>
+        <p>© {new Date().getFullYear()} TUSGU Educational Services & UCMAS Sri Lanka</p>
       </footer>
     </div>
   );

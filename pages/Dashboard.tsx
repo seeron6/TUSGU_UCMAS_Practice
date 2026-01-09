@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Headphones, Zap, Newspaper, ChevronRight, Moon, Sun } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { useTheme } from '../contexts/ThemeContext';
+// INFO: Please ensure 'assets/ucmas.png' exists in your project assets folder.
+import ucmasLogo from '../assets/ucmas.png';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -39,21 +41,46 @@ export const Dashboard: React.FC = () => {
   ];
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-[85vh] gap-16 py-10">
+    <div className="relative flex flex-col items-center justify-center min-h-[85vh] gap-12 py-10">
       
       {/* Theme Toggle */}
       <button
         onClick={toggleTheme}
-        className="absolute top-4 right-6 p-3 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-full shadow-sm hover:shadow-md transition-all text-slate-600 dark:text-yellow-300"
+        className="absolute top-4 right-6 p-3 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-full shadow-sm hover:shadow-md transition-all text-slate-600 dark:text-yellow-300 z-10"
         aria-label="Toggle Theme"
       >
         {theme === 'dark' ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
       </button>
 
-      <div className="scale-125 transform transition-transform hover:scale-130 duration-700 mt-10 md:mt-0">
-        <Logo />
+      {/* Dual Logo Header */}
+      <div className="flex flex-row items-center justify-center gap-6 md:gap-16 w-full max-w-5xl px-4 mt-10 md:mt-0 animate-in zoom-in-95 duration-700">
+        
+        {/* UCMAS Logo (Left) - Links to Website */}
+        <a 
+          href="https://www.ucmassrilanka.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-1 flex justify-end transform transition-transform hover:scale-105 active:scale-95 duration-300 group"
+          title="Visit UCMAS Sri Lanka"
+        >
+          <img 
+            src={ucmasLogo} 
+            alt="UCMAS Sri Lanka" 
+            className="h-48 md:h-80 object-contain drop-shadow-sm group-hover:drop-shadow-md transition-all" 
+          />
+        </a>
+
+        {/* Divider */}
+        <div className="h-16 w-[2px] bg-slate-200 dark:bg-slate-700 rounded-full opacity-60"></div>
+
+        {/* TUSGU Logo (Right) - Existing Admin Functionality */}
+        <div className="flex-1 flex justify-start transform transition-transform hover:scale-105 duration-300">
+          <Logo />
+        </div>
+
       </div>
       
+      {/* Menu Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl px-4 animate-in slide-in-from-bottom-8 duration-700">
         {menuItems.map((item) => {
           const isNews = item.title === 'News Board';
