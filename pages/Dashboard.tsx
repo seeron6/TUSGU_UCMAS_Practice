@@ -41,7 +41,7 @@ export const Dashboard: React.FC = () => {
   ];
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-[85vh] gap-12 py-10">
+    <div className="relative flex flex-col items-center justify-center min-h-[85vh] gap-4 py-10">
       
       {/* Theme Toggle */}
       <button
@@ -98,7 +98,7 @@ export const Dashboard: React.FC = () => {
               <div className={`absolute inset-0 opacity-0 group-hover:opacity-5 bg-gradient-to-br ${item.gradient} transition-opacity duration-300`}></div>
               
               <div className={`flex relative z-10 w-full ${isNews ? 'flex-col items-center justify-center text-center' : 'flex-row items-center justify-between text-left'}`}>
-                <div className={`flex ${isNews ? 'flex-col items-center gap-4' : 'items-center gap-6'}`}>
+                <div className={`flex ${isNews ? 'flex-col items-center gap-6' : 'items-center gap-6'}`}>
                   <div className={`
                     w-16 h-16 rounded-2xl flex items-center justify-center shadow-sm
                     ${item.iconBg} group-hover:scale-110 transition-transform duration-300
