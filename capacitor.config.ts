@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.tusgu.education',
-  appName: 'UCMAS Sri Lanka & TUSGU',
+  appName: 'UCMAS SL & TUSGU',
   webDir: 'dist',
   server: {
     androidScheme: 'https'
