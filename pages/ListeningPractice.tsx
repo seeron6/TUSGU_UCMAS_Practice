@@ -127,14 +127,14 @@ export const ListeningPractice: React.FC = () => {
 
     // --- TIMING LOGIC ---
     // If digits <= 2, use 125ms base. If > 2, use 325ms base.
-    const baseDelay = newConfig.digits <= 2 ? 125 : 325;
+    const baseDelay = newConfig.digits <= 2 ? 330 : 625;
     
     // Apply speed factor (divide delay by speed multiplier)
     // e.g., if base is 125ms and speed is 2.0, delay becomes 62.5ms
-    const gapDelay = baseDelay / (newConfig.listeningSpeed || 1);
+    const gapDelay = baseDelay / (1.1*newConfig.listeningSpeed || 1);
     
     // Operation gap (between "Plus/Minus" and number) usually slightly shorter
-    const opGap = (baseDelay * 0.8) / (newConfig.listeningSpeed || 1);
+    const opGap = (baseDelay * 0.7) / (newConfig.listeningSpeed || 1);
 
     for (let i = 0; i < sequence.length; i++) {
       if (stopRef.current) break;

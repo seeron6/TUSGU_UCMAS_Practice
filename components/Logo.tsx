@@ -62,7 +62,7 @@ export const Logo: React.FC<{ size?: 'sm' | 'lg', variant?: 'white' | 'blue' }> 
           alt="TUSGU Logo" 
           className={`
             object-contain 
-            ${isLarge ? 'h-32 md:h-40' : 'h-10'} 
+            ${isLarge ? 'h-30 md:h-40' : 'h-10'} 
             ${variant === 'white' ? 'brightness-0 invert' : ''} /* Optional: Makes logo white in header if it's transparent PNG */
           `} 
         />

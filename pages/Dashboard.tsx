@@ -66,7 +66,7 @@ export const Dashboard: React.FC = () => {
           <img 
             src={ucmasLogo} 
             alt="UCMAS Sri Lanka" 
-            className="h-48 md:h-80 object-contain drop-shadow-sm group-hover:drop-shadow-md transition-all" 
+            className="h-15 md:h-80 object-contain drop-shadow-sm group-hover:drop-shadow-md transition-all" 
           />
         </a>
 
