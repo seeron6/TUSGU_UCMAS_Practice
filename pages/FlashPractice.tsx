@@ -2,7 +2,11 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Layout } from '../components/Layout';
 import { GameState, MathConfig } from '../types';
 import { generateSequence } from '../services/mathUtils';
+import { saveGameResult } from '../services/statsService';
+import { NumberPad } from '../components/NumberPad';
 import { Play, RefreshCw, Settings, Square, Check, Trophy } from 'lucide-react';
+import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
+import { KeepAwake } from '@capacitor-community/keep-awake';
 
 export const FlashPractice: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.CONFIG);
@@ -14,19 +18,13 @@ export const FlashPractice: React.FC = () => {
     onlyPositive: false 
   });
   
-  // Local state for inputs to allow empty string while typing
   const [digitsInput, setDigitsInput] = useState<string>('1');
   const [termsInput, setTermsInput] = useState<string>('5');
-
   const [currentNumber, setCurrentNumber] = useState<string | null>(null);
   const [expectedAnswer, setExpectedAnswer] = useState<number>(0);
   const [userAnswer, setUserAnswer] = useState<string>('');
-  
-  // Score State
   const [score, setScore] = useState(0);
   const [totalQuestions, setTotalQuestions] = useState(0);
-  
-  // Refs for control
   const stopRef = useRef(false);
   const isMountedRef = useRef(true);
 
@@ -34,300 +32,198 @@ export const FlashPractice: React.FC = () => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      stopRef.current = true; // Stop any running loop on unmount
+      stopRef.current = true;
+      KeepAwake.allowSleep();
     };
   }, []);
 
   const getFontSize = () => {
     switch(config.fontSize) {
       case 'small': return 'text-8xl';
-      case 'large': return 'text-[10rem]';
-      default: return 'text-9xl';
+      case 'large': return 'text-[10rem] md:text-[14rem]';
+      default: return 'text-9xl md:text-[12rem]';
     }
   };
 
-  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
   const startGame = useCallback(async () => {
-    // Validate inputs
+    await Haptics.impact({ style: ImpactStyle.Heavy });
+    await KeepAwake.keepAwake();
+
     const d = parseInt(digitsInput);
     const t = parseInt(termsInput);
+    if (isNaN(d) || d < 1 || isNaN(t) || t < 2) return;
 
-    // If inputs are empty or invalid, do not start
-    if (isNaN(d) || d < 1 || isNaN(t) || t < 2) {
-      return;
-    }
-
-    // Update main config to match inputs
     const newConfig = { ...config, digits: d, terms: t };
     setConfig(newConfig);
 
     stopRef.current = false;
-    
-    // Generate sequence using the new validated values
     const { sequence, expectedAnswer: answer } = generateSequence(newConfig.digits, newConfig.terms, newConfig.onlyPositive);
     setExpectedAnswer(answer);
     
-    // Switch UI
     setGameState(GameState.PLAYING);
     setUserAnswer('');
-    setCurrentNumber(null); // Ensure blank start
+    setCurrentNumber(null); 
 
-    // Initial countdown/delay
-    await sleep(800);
+    // Initial delay before first number
+    await new Promise(r => setTimeout(r, 800));
 
     for (let i = 0; i < sequence.length; i++) {
       if (stopRef.current || !isMountedRef.current) break;
-
       const item = sequence[i];
-      const display = item.operation === '-' ? `-${item.value}` : `${item.value}`;
+      setCurrentNumber(item.operation === '-' ? `-${item.value}` : `${item.value}`);
       
-      // Show number
-      setCurrentNumber(display);
-      
-      // Wait for configured speed
-      await sleep(newConfig.speed || 1000);
+      // Display duration
+      await new Promise(r => setTimeout(r, newConfig.speed || 1000));
       
       if (stopRef.current || !isMountedRef.current) break;
-
-      // Clear number (blank interval)
-      setCurrentNumber(null);
       
-      // Short gap between numbers (150ms)
-      await sleep(150);
+      // Clear screen (gap between numbers)
+      setCurrentNumber(null);
+      await new Promise(r => setTimeout(r, 150));
     }
 
-    // Finished loop
     if (!stopRef.current && isMountedRef.current) {
       setGameState(GameState.INPUT);
+      await KeepAwake.allowSleep();
     }
   }, [config, digitsInput, termsInput]);
 
-  const stopGame = () => {
+  const stopGame = async () => {
     stopRef.current = true;
+    await Haptics.impact({ style: ImpactStyle.Medium });
+    await KeepAwake.allowSleep();
     setCurrentNumber(null);
     setGameState(GameState.CONFIG);
   };
 
-  const checkAnswer = () => {
+  const checkAnswer = async () => {
     const isCorrect = parseInt(userAnswer) === expectedAnswer;
-    if (isCorrect) {
-      setScore(s => s + 1);
-    }
+    setScore(s => isCorrect ? s + 1 : s);
     setTotalQuestions(t => t + 1);
+
+    if (isCorrect) await Haptics.notification({ type: NotificationType.Success });
+    else await Haptics.notification({ type: NotificationType.Error });
+
+    saveGameResult({
+      type: 'flash',
+      score: isCorrect ? 1 : 0,
+      total: 1,
+      config: `${config.digits}D ${config.terms}T (${config.speed}ms)`
+    });
+
     setGameState(GameState.FEEDBACK);
   };
 
-  const resetGame = () => {
-    setGameState(GameState.CONFIG);
-  };
-
-  const nextQuestion = () => {
-    startGame();
-  };
-
-  // --- Renders ---
-
-  const renderConfig = () => {
-    // Speed levels 1-6 mapping to ms
-    // Level 1 = Slowest (2000ms)
-    // Level 6 = Fastest (250ms)
-    const speedLevels = [
-        { label: "Level 1 (Slowest)", ms: 2000 },
-        { label: "Level 2", ms: 1500 },
-        { label: "Level 3", ms: 1000 },
-        { label: "Level 4", ms: 700 },
-        { label: "Level 5", ms: 500 },
-        { label: "Level 6 (Fastest)", ms: 250 }
-    ];
-    
-    // Helper to find valid level value even if current config is slightly off
-    const currentSpeedValue = config.speed || 1000;
-
-    return (
-      <div className="glass-panel p-10 rounded-3xl shadow-soft max-w-lg mx-auto w-full animate-in zoom-in-95 duration-300 relative">
-        {totalQuestions > 0 && (
-            <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-white dark:bg-slate-800 shadow-md border border-slate-100 dark:border-slate-600 rounded-full px-6 py-2 flex items-center gap-2">
-              <Trophy className="w-4 h-4 text-yellow-500" />
-              <span className="font-bold text-slate-700 dark:text-slate-200">Score: {score} / {totalQuestions}</span>
-            </div>
-        )}
-
-        <h2 className="text-2xl font-bold text-tusgu-blue dark:text-blue-300 mb-8 flex items-center gap-3 pb-4 border-b border-gray-100 dark:border-slate-700">
-          <Settings className="w-6 h-6" /> 
-          <span>Setup Flash</span>
-        </h2>
-        
-        <div className="space-y-8">
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Digits</label>
-               <input
-                type="number"
-                min="1"
-                value={digitsInput}
-                onChange={(e) => setDigitsInput(e.target.value)}
-                className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-2xl font-bold text-center text-tusgu-blue dark:text-blue-300 focus:ring-2 focus:ring-tusgu-blue outline-none transition-all"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Terms</label>
-              <input
-                type="number"
-                min="2"
-                value={termsInput}
-                onChange={(e) => setTermsInput(e.target.value)}
-                className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-2xl font-bold text-center text-tusgu-blue dark:text-blue-300 focus:ring-2 focus:ring-tusgu-blue outline-none transition-all"
-              />
-            </div>
-          </div>
-
-          {/* Addition Only Toggle */}
-          <div 
-            onClick={() => setConfig({ ...config, onlyPositive: !config.onlyPositive })}
-            className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl cursor-pointer hover:border-tusgu-blue dark:hover:border-blue-400 transition-colors group"
-          >
-              <div className="flex items-center gap-3">
-                <div className={`w-6 h-6 rounded-md flex items-center justify-center transition-colors ${config.onlyPositive ? 'bg-tusgu-blue text-white' : 'bg-gray-200 text-gray-400 dark:bg-slate-700'}`}>
-                  {config.onlyPositive && <Check className="w-4 h-4" />}
-                </div>
-                <span className="font-bold text-slate-700 dark:text-slate-200">Addition Only</span>
-              </div>
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                {config.onlyPositive ? 'On' : 'Off'}
-              </span>
-          </div>
-
-          <div className="space-y-2">
-             <label className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Speed</label>
-             <div className="relative">
-                <select 
-                  className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl appearance-none text-gray-700 dark:text-gray-200 font-medium focus:ring-2 focus:ring-tusgu-blue outline-none transition-all"
-                  value={speedLevels.find(l => l.ms === currentSpeedValue)?.ms || 1000}
-                  onChange={(e) => setConfig({...config, speed: parseInt(e.target.value)})}
-                >
-                  {speedLevels.map((s) => (
-                    <option key={s.ms} value={s.ms}>{s.label}</option>
-                  ))}
-                </select>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
-                </div>
-             </div>
-          </div>
-
-          <div className="space-y-2">
-             <label className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Font Size</label>
-             <div className="flex gap-2 bg-gray-50 dark:bg-slate-800 p-1 rounded-xl">
-               {['small', 'medium', 'large'].map((s) => (
-                 <button
-                   key={s}
-                   onClick={() => setConfig({...config, fontSize: s as any})}
-                   className={`flex-1 py-3 capitalize rounded-lg text-sm font-bold transition-all ${config.fontSize === s ? 'bg-white dark:bg-slate-700 text-tusgu-blue dark:text-blue-300 shadow-sm' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
-                 >
-                   {s}
-                 </button>
-               ))}
-             </div>
-          </div>
-
-          <button 
-            onClick={startGame}
-            className="w-full bg-gradient-to-r from-tusgu-blue to-blue-800 text-white py-5 rounded-2xl font-bold text-lg hover:shadow-lg hover:shadow-blue-900/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
-          >
-            <Play className="w-6 h-6 fill-current" /> Start Flash
-          </button>
-        </div>
-      </div>
-    );
-  };
-
-  const renderPlaying = () => (
-    <div className="relative flex flex-col items-center justify-center h-[65vh] w-full max-w-4xl mx-auto bg-white rounded-[2.5rem] shadow-soft border border-white/50 overflow-hidden">
-       {currentNumber ? (
-         <span className={`${getFontSize()} font-black text-slate-800 transition-none`}>
-           {currentNumber}
-         </span>
-       ) : (
-         /* Clean blank slate between numbers */
-         <div className="w-full h-full"></div>
-       )}
-       
-       <button
-        onClick={stopGame}
-        className="absolute bottom-8 flex items-center gap-2 px-6 py-2 bg-slate-100 text-slate-500 rounded-full font-bold hover:bg-red-50 hover:text-red-600 transition-colors z-10"
-      >
-        <Square className="w-4 h-4 fill-current" /> Stop
-      </button>
-    </div>
-  );
-
-  const renderInput = () => (
-    <div className="glass-panel p-10 rounded-3xl shadow-soft max-w-lg mx-auto w-full text-center animate-in zoom-in-95 duration-300 dark:border-slate-700">
-      <h3 className="text-xl font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-8">What is the result?</h3>
-      <input
-        type="number"
-        autoFocus
-        value={userAnswer}
-        onChange={(e) => setUserAnswer(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && checkAnswer()}
-        className="w-full text-center text-6xl font-black text-slate-800 dark:text-white tracking-tight border-b-4 border-tusgu-blue focus:border-blue-400 bg-transparent focus:outline-none py-6 mb-10 placeholder-gray-200 dark:placeholder-slate-700 transition-colors"
-        placeholder="0"
-      />
-      <button 
-        onClick={checkAnswer}
-        className="w-full bg-tusgu-blue text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-900 shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98]"
-      >
-        Submit Answer
-      </button>
-    </div>
-  );
-
-  const renderFeedback = () => {
-    const isCorrect = parseInt(userAnswer) === expectedAnswer;
-    return (
-      <div className="glass-panel p-10 rounded-3xl shadow-soft max-w-lg mx-auto w-full text-center animate-in zoom-in-95 duration-300 dark:border-slate-700 relative">
-        <div className="absolute top-6 right-6 flex items-center gap-2 text-slate-400 dark:text-slate-500 font-bold text-sm bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">
+  const renderConfig = () => (
+    <div className="glass-panel p-6 rounded-3xl shadow-soft w-full max-w-lg mx-auto animate-in zoom-in-95 duration-300 relative flex flex-col gap-6">
+       {totalQuestions > 0 && (
+          <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-white dark:bg-slate-800 shadow-md border border-slate-100 dark:border-slate-600 rounded-full px-6 py-2 flex items-center gap-2 z-10">
             <Trophy className="w-4 h-4 text-yellow-500" />
-            <span>{score} / {totalQuestions}</span>
-        </div>
-
-        <div className={`w-24 h-24 mx-auto rounded-full flex items-center justify-center mb-6 ${isCorrect ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'}`}>
-           {isCorrect ? <span className="text-5xl">✓</span> : <span className="text-5xl">✗</span>}
-        </div>
-        <h2 className={`text-4xl font-black mb-2 ${isCorrect ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-          {isCorrect ? 'Correct!' : 'Incorrect'}
-        </h2>
-        <div className="my-8 p-6 bg-slate-50 dark:bg-slate-800 rounded-xl">
-           <p className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-2">The answer is</p>
-           <p className="text-5xl font-black text-slate-800 dark:text-white">{expectedAnswer}</p>
-           {!isCorrect && <p className="text-red-400 mt-2 font-medium">You wrote {userAnswer}</p>}
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <button 
-            onClick={resetGame}
-            className="flex items-center justify-center gap-2 py-4 px-6 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 font-bold text-slate-600 dark:text-slate-300 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all"
-          >
-            <Settings className="w-5 h-5" /> Settings
-          </button>
-          <button 
-            onClick={nextQuestion}
-            className="flex items-center justify-center gap-2 py-4 px-6 rounded-xl bg-tusgu-blue text-white font-bold hover:bg-blue-900 shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98]"
-          >
-            <RefreshCw className="w-5 h-5" /> Next
-          </button>
-        </div>
-      </div>
-    );
-  };
+            <span className="font-bold text-slate-700 dark:text-slate-200">Score: {score} / {totalQuestions}</span>
+          </div>
+       )}
+       <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-gray-500 uppercase">Digits</label>
+            <input 
+              type="tel" 
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={digitsInput} 
+              onChange={(e) => setDigitsInput(e.target.value.replace(/\D/g,''))} 
+              className="w-full p-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-xl font-bold text-center text-tusgu-blue dark:text-blue-300 outline-none" 
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-gray-500 uppercase">Rows</label>
+            <input 
+              type="tel" 
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={termsInput} 
+              onChange={(e) => setTermsInput(e.target.value.replace(/\D/g,''))} 
+              className="w-full p-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-xl font-bold text-center text-tusgu-blue dark:text-blue-300 outline-none" 
+            />
+          </div>
+       </div>
+       <div onClick={() => setConfig({ ...config, onlyPositive: !config.onlyPositive })} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 rounded-xl active:bg-slate-100 dark:active:bg-slate-700 transition-colors cursor-pointer select-none">
+           <div className="flex items-center gap-3">
+             <div className={`w-6 h-6 rounded-md flex items-center justify-center border ${config.onlyPositive ? 'bg-tusgu-blue text-white border-transparent' : 'bg-gray-100 border-gray-300 text-transparent'}`}>{config.onlyPositive && <Check className="w-4 h-4" />}</div>
+             <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">Addition Only</span>
+           </div>
+       </div>
+       <div className="space-y-2">
+          <label className="text-xs font-bold text-gray-500 uppercase">Speed</label>
+          <select className="w-full p-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl font-medium outline-none" value={config.speed} onChange={(e) => setConfig({...config, speed: parseInt(e.target.value)})}>
+             {[2000, 1500, 1000, 700, 500, 250].map((s, i) => <option key={s} value={s}>Level {i+1} ({s}ms)</option>)}
+          </select>
+       </div>
+       <button onClick={startGame} className="w-full bg-tusgu-blue text-white py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 active:scale-[0.98] transition-transform shadow-lg shadow-blue-900/20"><Play className="w-6 h-6" /> Start Flash</button>
+    </div>
+  );
 
   return (
-    <Layout title="Flash Practice">
+    <Layout title="Flash">
       {gameState === GameState.CONFIG && renderConfig()}
-      {gameState === GameState.PLAYING && renderPlaying()}
-      {gameState === GameState.INPUT && renderInput()}
-      {gameState === GameState.FEEDBACK && renderFeedback()}
+      
+      {gameState === GameState.PLAYING && (
+        <div className="flex flex-col flex-grow w-full max-w-4xl mx-auto gap-6 justify-center py-2 h-full">
+            {/* 
+                Flash Card Container 
+                - flex-grow ensures it takes up most of the screen
+                - Fixed white/dark background (Does not flicker)
+                - Centered content
+            */}
+            <div className="flex-grow w-full bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-700 flex items-center justify-center overflow-hidden relative min-h-[50vh]">
+                 {/* The number is strictly centered and absolutely positioned to avoid layout shift */}
+                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    {currentNumber && (
+                        <span className={`${getFontSize()} font-black text-slate-800 dark:text-white leading-none select-none`}>
+                            {currentNumber}
+                        </span>
+                    )}
+                 </div>
+            </div>
+
+            {/* Stop Button */}
+            <button 
+                onClick={stopGame} 
+                className="w-full py-5 bg-red-500 text-white rounded-2xl font-bold text-xl shadow-lg shadow-red-500/30 active:scale-95 transition-transform flex items-center justify-center gap-3 flex-shrink-0"
+            >
+                <Square className="w-6 h-6 fill-current" /> Stop Session
+            </button>
+        </div>
+      )}
+
+      {gameState === GameState.INPUT && (
+        <div className="glass-panel rounded-3xl shadow-soft w-full max-w-md mx-auto flex flex-col justify-center overflow-hidden animate-in zoom-in-95 duration-300">
+          <div className="p-6 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 text-center">
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Result</h3>
+            <div className="text-5xl font-black text-slate-800 dark:text-white h-16">{userAnswer || <span className="text-slate-200 dark:text-slate-700">?</span>}</div>
+          </div>
+          <div className="p-2">
+            <NumberPad value={userAnswer} onChange={setUserAnswer} onSubmit={checkAnswer} />
+          </div>
+        </div>
+      )}
+
+      {gameState === GameState.FEEDBACK && (
+          <div className="glass-panel p-8 rounded-3xl shadow-soft w-full max-w-lg mx-auto text-center animate-in zoom-in-95 duration-300 relative flex flex-col justify-center">
+            <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4 ${parseInt(userAnswer) === expectedAnswer ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+            {parseInt(userAnswer) === expectedAnswer ? <span className="text-4xl">✓</span> : <span className="text-4xl">✗</span>}
+            </div>
+            <h2 className={`text-3xl font-black mb-2 ${parseInt(userAnswer) === expectedAnswer ? 'text-green-600' : 'text-red-600'}`}>{parseInt(userAnswer) === expectedAnswer ? 'Correct!' : 'Incorrect'}</h2>
+            <div className="my-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
+            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Answer</p>
+            <p className="text-4xl font-black text-slate-800 dark:text-white">{expectedAnswer}</p>
+            {parseInt(userAnswer) !== expectedAnswer && <p className="text-red-400 mt-1 text-sm">You wrote {userAnswer}</p>}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+            <button onClick={() => setGameState(GameState.CONFIG)} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-slate-600 dark:text-slate-300"><Settings className="w-5 h-5" /> Setup</button>
+            <button onClick={startGame} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-tusgu-blue text-white font-bold"><RefreshCw className="w-5 h-5" /> Next</button>
+            </div>
+        </div>
+      )}
     </Layout>
   );
 };

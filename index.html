@@ -3,14 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>UCMAS SL & TUSGU</title>
+    <title>TUSGU Educational Services</title>
     <link rel="icon" type="image/png" href="./assets/ucmas.png" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- 1. Tailwind CDN -->
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- 2. Tailwind Configuration -->
     <script>
       tailwind.config = {
         darkMode: 'class',
@@ -36,113 +34,58 @@
       }
     </script>
 
-    <!-- 3. Custom CSS Styles -->
+    <!-- Essential Inline Styles -->
     <style>
-      /* Body & Backgrounds */
-      body {
-        background-color: #f8fafc;
-        background-image: radial-gradient(#e0e7ff 1px, transparent 1px);
-        background-size: 24px 24px;
-        transition: background-color 0.3s ease, color 0.3s ease;
+      /* Base Defaults */
+      body { background-color: #f8fafc; }
+      .dark body { background-color: #0f172a; }
+      
+      html, body {
+        width: 100%;
+        height: 100%;
         margin: 0;
-        
-        /* Capacitor / Mobile Safe Areas */
-        padding-top: env(safe-area-inset-top);
-        padding-bottom: env(safe-area-inset-bottom);
-        padding-left: env(safe-area-inset-left);
-        padding-right: env(safe-area-inset-right);
+        padding: 0;
+        overflow: hidden; /* Prevent body scroll, handle in Layout */
       }
 
-      .dark body {
-        background-color: #0f172a;
-        background-image: radial-gradient(#1e293b 1px, transparent 1px);
-      }
-
-      /* Glass Panel Effect */
-      .glass-panel {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.5);
-      }
-
-      .dark .glass-panel {
-        background: rgba(30, 41, 59, 0.95);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-      }
+      /* Custom Utility for Safe Areas (Capacitor/Mobile) */
+      .pt-safe-top { padding-top: env(safe-area-inset-top, 20px); }
+      .pb-safe-bottom { padding-bottom: env(safe-area-inset-bottom, 20px); }
 
       /* Custom Scrollbar */
-      ::-webkit-scrollbar {
-        width: 8px;
+      .scrollable-container {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
       }
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 4px;
-      }
-      .dark ::-webkit-scrollbar-thumb {
-        background: #475569;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
-      }
-
-      /* Animations */
-      .animate-in {
-        animation-fill-mode: both;
-        animation-duration: 500ms; 
-        animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-      }
-
-      .duration-300 { animation-duration: 300ms; }
-      .duration-500 { animation-duration: 500ms; }
-      .duration-700 { animation-duration: 700ms; }
-      
-      .fade-in { animation-name: fadeIn; }
-      .slide-in-from-bottom-4 { animation-name: slideInBottomSm; }
-      .slide-in-from-bottom-8 { animation-name: slideInBottomMd; }
-      .zoom-in-95 { animation-name: zoomIn95; }
-
-      @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-      }
-
-      @keyframes slideInBottomSm {
-        from { transform: translateY(1rem); opacity: 0; }
-        to { transform: translateY(0); opacity: 1; }
-      }
-
-      @keyframes slideInBottomMd {
-        from { transform: translateY(2rem); opacity: 0; }
-        to { transform: translateY(0); opacity: 1; }
-      }
-
-      @keyframes zoomIn95 {
-        from { transform: scale(0.95); opacity: 0; }
-        to { transform: scale(1); opacity: 1; }
-      }
+      .scrollable-container::-webkit-scrollbar { width: 4px; }
+      .scrollable-container::-webkit-scrollbar-track { background: transparent; }
+      .scrollable-container::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.3); border-radius: 4px; }
     </style>
-
-    <script type="importmap">
-    {
-      "imports": {
-        "react-router-dom": "https://esm.sh/react-router-dom@^7.11.0",
-        "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-        "react/": "https://esm.sh/react@^19.2.3/",
-        "react": "https://esm.sh/react@^19.2.3",
-        "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-        "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
-        "tailwindcss": "https://esm.sh/tailwindcss@^4.1.18",
-        "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.89.0",
-        "vite": "https://esm.sh/vite@^7.3.0",
-        "autoprefixer": "https://esm.sh/autoprefixer@^10.4.23",
-        "@capacitor/cli": "https://esm.sh/@capacitor/cli@^8.0.0"
-      }
-    }
-    </script>
-  </head>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.12.0",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "@capacitor/status-bar": "https://esm.sh/@capacitor/status-bar@^8.0.0",
+    "@capacitor/core": "https://esm.sh/@capacitor/core@^8.0.1",
+    "@capacitor/haptics": "https://esm.sh/@capacitor/haptics@^8.0.0",
+    "@capacitor-community/text-to-speech": "https://esm.sh/@capacitor-community/text-to-speech@^6.1.0",
+    "@capacitor-community/keep-awake": "https://esm.sh/@capacitor-community/keep-awake@^8.0.0",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.90.1",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "tailwindcss": "https://esm.sh/tailwindcss@^4.1.18",
+    "autoprefixer": "https://esm.sh/autoprefixer@^10.4.23",
+    "@capacitor/cli": "https://esm.sh/@capacitor/cli@^8.0.1",
+    "@capacitor/local-notifications": "https://esm.sh/@capacitor/local-notifications@^8.0.0"
+  }
+}
+</script>
+</head>
   <body>
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>

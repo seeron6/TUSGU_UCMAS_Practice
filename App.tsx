@@ -5,6 +5,7 @@ import { ListeningPractice } from './pages/ListeningPractice';
 import { FlashPractice } from './pages/FlashPractice';
 import { NewsBoard } from './pages/NewsBoard';
 import { AdminNews } from './pages/AdminNews';
+import { Stats } from './pages/Stats';
 import { ThemeProvider } from './contexts/ThemeContext';
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
           <Route path="/flash" element={<FlashPractice />} />
           <Route path="/news" element={<NewsBoard />} />
           <Route path="/admin/news" element={<AdminNews />} />
+          <Route path="/stats" element={<Stats />} />
         </Routes>
       </Router>
     </ThemeProvider>

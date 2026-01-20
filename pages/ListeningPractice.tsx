@@ -2,13 +2,22 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Layout } from '../components/Layout';
 import { GameState, MathConfig, MathSequenceItem } from '../types';
 import { generateSequence } from '../services/mathUtils';
+import { saveGameResult } from '../services/statsService';
+import { NumberPad } from '../components/NumberPad';
 import { Volume2, Play, RefreshCw, Settings, Square, Trophy, Check } from 'lucide-react';
 import { TextToSpeech } from '@capacitor-community/text-to-speech';
-import { Capacitor } from '@capacitor/core';
+import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
+import { KeepAwake } from '@capacitor-community/keep-awake';
+
+interface VoiceOption {
+  name: string;
+  voiceIndex: number;
+  pitch: number;
+  lang: string;
+}
 
 export const ListeningPractice: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.CONFIG);
-  // Default config with listening speed
   const [config, setConfig] = useState<MathConfig>({ 
     digits: 1, 
     terms: 5, 
@@ -17,102 +26,120 @@ export const ListeningPractice: React.FC = () => {
     onlyPositive: false
   });
 
-  // Local state for inputs to allow empty string while typing
   const [digitsInput, setDigitsInput] = useState<string>('1');
   const [termsInput, setTermsInput] = useState<string>('5');
-  
-  // Custom mapped voices
-  const [voiceOptions, setVoiceOptions] = useState<{name: string, voiceIndex: number}[]>([]);
-  
+  const [voiceOptions, setVoiceOptions] = useState<VoiceOption[]>([]);
   const [currentSequence, setCurrentSequence] = useState<MathSequenceItem[]>([]);
   const [expectedAnswer, setExpectedAnswer] = useState<number>(0);
   const [userAnswer, setUserAnswer] = useState<string>('');
   const [isPlaying, setIsPlaying] = useState(false);
   const stopRef = useRef(false);
-
-  // Score State
   const [score, setScore] = useState(0);
   const [totalQuestions, setTotalQuestions] = useState(0);
 
-  // Load and Map Voices
+  // Safe Haptics
+  const safeHaptic = async (style: ImpactStyle) => {
+      try { await Haptics.impact({ style }); } catch(e) {}
+  };
+  const safeNotify = async (type: NotificationType) => {
+      try { await Haptics.notification({ type }); } catch(e) {}
+  };
+
+  // Load Voices
   useEffect(() => {
-    const loadAndMapVoices = async () => {
+    let isMounted = true;
+    
+    const initVoices = async () => {
+      // Allow native plugin to initialize
+      await new Promise(r => setTimeout(r, 500));
+      
       try {
         const result = await TextToSpeech.getSupportedVoices();
+        if (!isMounted) return;
+
         const allVoices = result.voices;
         
-        // Helper to find index in the voices array
-        const findVoiceIndex = (keywords: string[], genderHint: string, excludeIndices: number[] = []): number => {
-          let idx = allVoices.findIndex((v, i) => !excludeIndices.includes(i) && keywords.some(k => v.name.toLowerCase().includes(k.toLowerCase())));
-          
-          if (idx === -1) {
-            // Try to match gender if possible (Note: standard plugin response might not have explicit gender field in all versions, relying on name)
-             idx = allVoices.findIndex((v, i) => !excludeIndices.includes(i) && v.name.toLowerCase().includes(genderHint));
-          }
-          
-          if (idx === -1) {
-             // Fallback to any English voice
-             idx = allVoices.findIndex((v, i) => !excludeIndices.includes(i) && v.lang.startsWith('en'));
-          }
+        // Filter for English voices
+        const englishVoices = allVoices.map((v, i) => ({ ...v, originalIndex: i }))
+                                       .filter(v => v.lang && v.lang.toLowerCase().includes('en'));
 
-          if (idx === -1) return -1;
-          return idx;
-        };
+        // --- STRICT MAPPING STRATEGY ---
+        const finalSlots: VoiceOption[] = [];
+        const preferredOrder = ['Samantha', 'Daniel', 'Karen', 'Rishi', 'Tessa', 'Google', 'Siri', 'Ava', 'Evan'];
+        const usedIndices = new Set<number>();
 
-        const usedIndices: number[] = [];
-        const slots: {name: string, voiceIndex: number}[] = [];
+        // We want exactly 8 options labeled Instructor 1 - Instructor 8
+        for (let i = 1; i <= 8; i++) {
+           let foundIndex = -1;
+           let pitch = 1.0;
+           let lang = 'en-US';
 
-        // Define our desired instructor slots
-        const definitions = [
-          { label: "Instructor 1 (Female)", keywords: ['Samantha', 'Zira', 'Ava', 'Google US English'], gender: 'female' },
-          { label: "Instructor 2 (Female)", keywords: ['Martha', 'Serena', 'Google UK English Female'], gender: 'female' },
-          { label: "Instructor 3 (Female)", keywords: ['Moira', 'Tessa', 'Fiona'], gender: 'female' },
-          { label: "Instructor 4 (Female)", keywords: ['Susan', 'Vicki', 'Karen'], gender: 'female' },
-          { label: "Instructor 5 (Female)", keywords: ['Monica', 'Amelie'], gender: 'female' },
-          { label: "Instructor 6 (Male)", keywords: ['Daniel', 'Google UK English Male'], gender: 'male' },
-          { label: "Instructor 7 (Male)", keywords: ['Alex', 'Fred', 'Google US English'], gender: 'male' },
-          { label: "Instructor 8 (Male)", keywords: ['Rishi', 'David'], gender: 'male' },
-          { label: "Instructor 9 (Male)", keywords: ['Mark', 'Bruce'], gender: 'male' },
-          { label: "Instructor 10 (Male)", keywords: ['James', 'Tom'], gender: 'male' },
-        ];
+           // 1. Try to find a preferred voice
+           const prefName = preferredOrder[i - 1];
+           if (prefName) {
+             const v = englishVoices.find(ev => ev.name.includes(prefName) && !usedIndices.has(ev.originalIndex));
+             if (v) {
+               foundIndex = v.originalIndex;
+               lang = v.lang;
+               usedIndices.add(v.originalIndex);
+             }
+           }
 
-        definitions.forEach(def => {
-          const idx = findVoiceIndex(def.keywords, def.gender, usedIndices);
-          if (idx !== -1) {
-            usedIndices.push(idx);
-            slots.push({ name: def.label, voiceIndex: idx });
-          } else {
-            // Fallback if we run out of unique voices, reuse first available or just placeholder
-            if (allVoices.length > 0) {
-               slots.push({ name: def.label, voiceIndex: 0 }); 
-            }
-          }
-        });
-        
-        // If we found nothing (e.g. no permissions or empty list), set empty or default
-        if (slots.length === 0 && allVoices.length > 0) {
-           slots.push({ name: "Default Voice", voiceIndex: 0 });
+           // 2. If no preferred voice, pick next available
+           if (foundIndex === -1) {
+             const v = englishVoices.find(ev => !usedIndices.has(ev.originalIndex));
+             if (v) {
+               foundIndex = v.originalIndex;
+               lang = v.lang;
+               usedIndices.add(v.originalIndex);
+             }
+           }
+
+           // 3. Fallback: reuse first available with pitch shift
+           if (foundIndex === -1) {
+             if (englishVoices.length > 0) {
+                foundIndex = englishVoices[0].originalIndex;
+                lang = englishVoices[0].lang;
+                pitch = 0.8 + (i * 0.05); 
+             }
+           }
+
+           // STRICT NAME GENERATION
+           finalSlots.push({
+             name: `Instructor ${i}`, 
+             voiceIndex: foundIndex,
+             pitch: pitch,
+             lang: lang
+           });
         }
 
-        setVoiceOptions(slots);
+        setVoiceOptions(finalSlots);
+
       } catch (e) {
-        console.error("Failed to load TTS voices", e);
+        // Fallback if plugin fails completely
+        const fallbackSlots = Array.from({length: 8}, (_, i) => ({
+           name: `Instructor ${i + 1}`,
+           voiceIndex: -1, 
+           pitch: 1.0,
+           lang: 'en-US'
+        }));
+        setVoiceOptions(fallbackSlots);
       }
     };
 
-    loadAndMapVoices();
-    
-    // For web compatibility, we might want to listen to changes, but Capacitor plugin doesn't have a direct 'onvoiceschanged' listener exposed easily in the same way.
-    // Usually fetching once on mount is sufficient for native.
+    initVoices();
+
+    return () => { isMounted = false; };
   }, []);
 
   const startGame = useCallback(async () => {
+    await safeHaptic(ImpactStyle.Heavy);
+    try { await KeepAwake.keepAwake(); } catch(e) {}
+
     const d = parseInt(digitsInput);
     const t = parseInt(termsInput);
 
-    if (isNaN(d) || d < 1 || isNaN(t) || t < 2) {
-      return;
-    }
+    if (isNaN(d) || d < 1 || isNaN(t) || t < 2) return;
 
     const newConfig = { ...config, digits: d, terms: t };
     setConfig(newConfig);
@@ -125,312 +152,200 @@ export const ListeningPractice: React.FC = () => {
     setIsPlaying(true);
     setUserAnswer('');
 
-    // --- TIMING LOGIC ---
-    // If digits <= 2, use 125ms base. If > 2, use 325ms base.
-    const baseDelay = newConfig.digits <= 2 ? 330 : 625;
+    // Warm up TTS
+    try { await TextToSpeech.speak({ text: ' ', rate: 2.0, volume: 0.1 }); } catch(e) {}
+
+    const speedLevel = newConfig.listeningSpeed || 1.0;
+    let gapMs = 1200;
+    if (speedLevel >= 2.0) gapMs = 300;
+    else if (speedLevel >= 1.8) gapMs = 450;
+    else if (speedLevel >= 1.6) gapMs = 600;
+    else if (speedLevel >= 1.4) gapMs = 800;
+    else if (speedLevel >= 1.2) gapMs = 1000;
     
-    // Apply speed factor (divide delay by speed multiplier)
-    // e.g., if base is 125ms and speed is 2.0, delay becomes 62.5ms
-    const gapDelay = baseDelay / (1.1*newConfig.listeningSpeed || 1);
+    if (newConfig.digits > 2) gapMs += 300;
     
-    // Operation gap (between "Plus/Minus" and number) usually slightly shorter
-    const opGap = (baseDelay * 0.7) / (newConfig.listeningSpeed || 1);
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    const selectedOption = voiceOptions[newConfig.voiceIndex || 0];
+    const voiceIdx = selectedOption ? selectedOption.voiceIndex : -1;
+    const basePitch = selectedOption ? selectedOption.pitch : 1.0;
+    const selectedLang = selectedOption ? selectedOption.lang : 'en-US';
+
+    const speak = async (text: string, speedOverride?: number) => {
+      if (stopRef.current) return;
+      try {
+        await TextToSpeech.speak({
+          text: text,
+          lang: selectedLang,
+          rate: speedOverride || (newConfig.listeningSpeed || 1.0),
+          pitch: basePitch, 
+          voice: voiceIdx >= 0 ? voiceIdx : undefined,
+          volume: 1.0,
+          category: 'ambient',
+        });
+      } catch (e) {
+        // Fallback delay if TTS fails
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+    };
 
     for (let i = 0; i < sequence.length; i++) {
       if (stopRef.current) break;
-      
       const item = sequence[i];
       
       if (i > 0) {
         const prevItem = sequence[i - 1];
-        
-        if (item.operation === '-') {
-            await speakText("Minus", newConfig);
-        } else if (item.operation === '+' && prevItem.operation === '-') {
-            await speakText("Plus", newConfig);
-        } else {
-             // For standard addition sequences, we just pause
-             await new Promise(resolve => setTimeout(resolve, opGap)); 
-        }
+        if (item.operation === '-') await speak("Minus", 1.4);
+        else if (item.operation === '+' && prevItem.operation === '-') await speak("Plus", 1.4);
+        await new Promise(resolve => setTimeout(resolve, 50)); 
       }
-
-      if (stopRef.current) break;
-
-      await speakText(item.value.toString(), newConfig);
       
       if (stopRef.current) break;
-
-      await new Promise(resolve => setTimeout(resolve, gapDelay));
+      await speak(item.value.toString());
+      if (stopRef.current) break;
+      await new Promise(resolve => setTimeout(resolve, gapMs));
     }
 
     if (!stopRef.current) {
       setIsPlaying(false);
       setGameState(GameState.INPUT);
+      try { await KeepAwake.allowSleep(); } catch(e) {}
     }
-  }, [config, digitsInput, termsInput, voiceOptions]);
+  }, [config, digitsInput, termsInput, voiceOptions]); 
 
   const stopGame = async () => {
     stopRef.current = true;
-    try {
-      await TextToSpeech.stop();
-    } catch (e) {
-      console.warn("Error stopping TTS", e);
-    }
+    try { await KeepAwake.allowSleep(); } catch(e) {}
+    try { await TextToSpeech.stop(); } catch (e) {}
     setIsPlaying(false);
     setGameState(GameState.CONFIG);
   };
 
-  const speakText = async (text: string, currentConfig: MathConfig): Promise<void> => {
-    if (stopRef.current) return;
-    
-    const selectedOption = voiceOptions[currentConfig.voiceIndex || 0];
-    const voiceIdx = selectedOption ? selectedOption.voiceIndex : 0;
-    
-    // Adjust rate for platform differences if necessary. 
-    // Capacitor TTS: 1.0 is standard.
-    const rate = currentConfig.listeningSpeed || 1.0;
-
-    try {
-      await TextToSpeech.speak({
-        text: text,
-        lang: 'en-US', // Default fallback
-        rate: rate,
-        voice: voiceIdx,
-        volume: 1.0,
-        category: 'ambient', // 'ambient' allows mixing, but on iOS for educational apps 'playback' is often better implied by the plugin
-      });
-    } catch (e) {
-      console.error("TTS Error:", e);
-      // Fallback delay if sound fails so game doesn't rush
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-  };
-
-  const checkAnswer = () => {
+  const checkAnswer = async () => {
     const isCorrect = parseInt(userAnswer) === expectedAnswer;
-    if (isCorrect) {
-      setScore(s => s + 1);
-    }
-    setTotalQuestions(t => t + 1);
+    const newScore = isCorrect ? score + 1 : score;
+    const newTotal = totalQuestions + 1;
+    
+    setScore(newScore);
+    setTotalQuestions(newTotal);
+
+    if (isCorrect) await safeNotify(NotificationType.Success);
+    else await safeNotify(NotificationType.Error);
+
+    saveGameResult({
+      type: 'listening',
+      score: isCorrect ? 1 : 0,
+      total: 1,
+      config: `${config.digits}D ${config.terms}T (Level ${(((config.listeningSpeed || 1.0)-0.8)/0.2).toFixed(0)})`
+    });
+
     setGameState(GameState.FEEDBACK);
   };
 
-  const resetGame = () => {
-    setGameState(GameState.CONFIG);
-    setUserAnswer('');
-  };
-
-  const nextQuestion = () => {
-     startGame();
-  };
-
-  // --- Renders ---
-
-  const renderConfig = () => {
-    const speedLevels = [
-        { label: "Level 1 (Normal)", value: 1.0 },
-        { label: "Level 2", value: 1.2 },
-        { label: "Level 3", value: 1.4 },
-        { label: "Level 4", value: 1.6 },
-        { label: "Level 5", value: 1.8 },
-        { label: "Level 6 (Fastest)", value: 2.0 }
-    ];
-
-    const currentSpeedValue = config.listeningSpeed || 1.0;
-
-    return (
-      <div className="glass-panel p-10 rounded-3xl shadow-soft max-w-lg mx-auto w-full animate-in zoom-in-95 duration-300 dark:border-slate-700 relative">
-        {totalQuestions > 0 && (
-          <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-white dark:bg-slate-800 shadow-md border border-slate-100 dark:border-slate-600 rounded-full px-6 py-2 flex items-center gap-2">
-            <Trophy className="w-4 h-4 text-yellow-500" />
-            <span className="font-bold text-slate-700 dark:text-slate-200">Score: {score} / {totalQuestions}</span>
-          </div>
-        )}
-
-        <h2 className="text-2xl font-bold text-tusgu-blue dark:text-blue-300 mb-8 flex items-center gap-3 pb-4 border-b border-gray-100 dark:border-gray-700">
-          <Settings className="w-6 h-6" /> 
-          <span>Setup Practice</span>
-        </h2>
-        
-        <div className="space-y-8">
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Digits</label>
-              <input
-                type="number"
-                min="1"
-                value={digitsInput}
-                onChange={(e) => setDigitsInput(e.target.value)}
-                className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-2xl font-bold text-center text-tusgu-blue dark:text-blue-300 focus:ring-2 focus:ring-tusgu-blue focus:border-transparent outline-none transition-all"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Terms</label>
-              <input
-                type="number"
-                min="2"
-                value={termsInput}
-                onChange={(e) => setTermsInput(e.target.value)}
-                className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-2xl font-bold text-center text-tusgu-blue dark:text-blue-300 focus:ring-2 focus:ring-tusgu-blue focus:border-transparent outline-none transition-all"
-              />
-            </div>
-          </div>
-
-          {/* Addition Only Toggle */}
-          <div 
-            onClick={() => setConfig({ ...config, onlyPositive: !config.onlyPositive })}
-            className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl cursor-pointer hover:border-tusgu-blue dark:hover:border-blue-400 transition-colors group"
-          >
-             <div className="flex items-center gap-3">
-               <div className={`w-6 h-6 rounded-md flex items-center justify-center transition-colors ${config.onlyPositive ? 'bg-tusgu-blue text-white' : 'bg-gray-200 text-gray-400 dark:bg-slate-700'}`}>
-                  {config.onlyPositive && <Check className="w-4 h-4" />}
-               </div>
-               <span className="font-bold text-slate-700 dark:text-slate-200">Addition Only</span>
-             </div>
-             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-               {config.onlyPositive ? 'On' : 'Off'}
-             </span>
-          </div>
-
-          <div className="space-y-2">
-             <label className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Speed</label>
-             <div className="relative">
-                <select 
-                  className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl appearance-none text-gray-700 dark:text-gray-200 font-medium focus:ring-2 focus:ring-tusgu-blue outline-none transition-all"
-                  value={speedLevels.find(l => Math.abs(l.value - currentSpeedValue) < 0.1)?.value || 1.0}
-                  onChange={(e) => setConfig({...config, listeningSpeed: parseFloat(e.target.value)})}
-                >
-                  {speedLevels.map((s) => (
-                    <option key={s.value} value={s.value}>{s.label}</option>
-                  ))}
-                </select>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
-                </div>
-             </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Voice Instructor</label>
-            <div className="relative">
-              <select 
-                className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl appearance-none text-gray-700 dark:text-gray-200 font-medium focus:ring-2 focus:ring-tusgu-blue outline-none transition-all"
-                value={config.voiceIndex}
-                onChange={(e) => setConfig({...config, voiceIndex: parseInt(e.target.value)})}
-              >
-                {voiceOptions.map((v, i) => (
-                  <option key={i} value={i}>{v.name}</option>
-                ))}
-              </select>
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
-              </div>
-            </div>
-            <p className="text-xs text-gray-400 mt-1 pl-1">
-               * Voices may vary slightly across different devices.
-            </p>
-          </div>
-
-          <button 
-            onClick={startGame}
-            className="w-full bg-gradient-to-r from-tusgu-blue to-blue-700 hover:from-blue-800 hover:to-blue-900 text-white py-5 rounded-2xl font-bold text-lg hover:shadow-lg hover:shadow-blue-900/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
-          >
-            <Play className="w-6 h-6 fill-current" /> Start Session
-          </button>
+  const renderConfig = () => (
+    <div className="glass-panel p-6 rounded-3xl shadow-soft w-full max-w-lg mx-auto animate-in zoom-in-95 duration-300 relative flex flex-col gap-6">
+      {totalQuestions > 0 && (
+        <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-white dark:bg-slate-800 shadow-md border border-slate-100 dark:border-slate-600 rounded-full px-6 py-2 flex items-center gap-2 z-10">
+          <Trophy className="w-4 h-4 text-yellow-500" />
+          <span className="font-bold text-slate-700 dark:text-slate-200">Score: {score} / {totalQuestions}</span>
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-gray-500 uppercase">Digits</label>
+          <input 
+            type="tel" 
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={digitsInput} 
+            onChange={(e) => setDigitsInput(e.target.value.replace(/\D/g,''))} 
+            className="w-full p-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-xl font-bold text-center text-tusgu-blue dark:text-blue-300 outline-none" 
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-gray-500 uppercase">Rows</label>
+          <input 
+            type="tel" 
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={termsInput} 
+            onChange={(e) => setTermsInput(e.target.value.replace(/\D/g,''))} 
+            className="w-full p-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-xl font-bold text-center text-tusgu-blue dark:text-blue-300 outline-none" 
+          />
         </div>
       </div>
-    );
-  };
-
-  const renderPlaying = () => (
-    <div className="flex flex-col items-center justify-center min-h-[50vh] animate-in fade-in duration-500">
-      <div className={`
-        relative w-64 h-64 rounded-full flex items-center justify-center
-        ${isPlaying ? 'bg-blue-50 dark:bg-blue-900/20 shadow-glow' : 'bg-gray-50 dark:bg-slate-800'} transition-all duration-500
-      `}>
-        {isPlaying && (
-          <div className="absolute inset-0 rounded-full border-4 border-blue-100 dark:border-blue-800 animate-ping opacity-20"></div>
-        )}
-        <Volume2 className={`w-32 h-32 ${isPlaying ? 'text-tusgu-blue dark:text-blue-400' : 'text-gray-300 dark:text-slate-600'} transition-colors duration-300`} />
+      <div onClick={() => setConfig({ ...config, onlyPositive: !config.onlyPositive })} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 rounded-xl cursor-pointer">
+         <div className="flex items-center gap-3">
+           <div className={`w-6 h-6 rounded-md flex items-center justify-center ${config.onlyPositive ? 'bg-tusgu-blue text-white' : 'bg-gray-200 text-gray-400'}`}>{config.onlyPositive && <Check className="w-4 h-4" />}</div>
+           <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">Addition Only</span>
+         </div>
       </div>
-      
-      <p className="mt-8 text-2xl font-bold text-slate-700 dark:text-slate-200 tracking-wide">
-        {isPlaying ? 'Listen Carefully...' : 'Finished'}
-      </p>
-
-      <button
-        onClick={stopGame}
-        className="mt-12 flex items-center gap-2 px-8 py-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-full font-bold hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-      >
-        <Square className="w-5 h-5 fill-current" /> Stop Question
-      </button>
+      <div className="space-y-2">
+         <label className="text-xs font-bold text-gray-500 uppercase">Speed</label>
+         <select className="w-full p-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl font-medium outline-none" value={config.listeningSpeed} onChange={(e) => setConfig({...config, listeningSpeed: parseFloat(e.target.value)})}>
+           {[1.0, 1.2, 1.4, 1.6, 1.8, 2.0].map(v => <option key={v} value={v}>Level {((v-0.8)/0.2).toFixed(0)}</option>)}
+         </select>
+      </div>
+      <div className="space-y-2">
+        <label className="text-xs font-bold text-gray-500 uppercase">Instructor</label>
+        <select className="w-full p-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl font-medium outline-none" value={config.voiceIndex} onChange={(e) => setConfig({...config, voiceIndex: parseInt(e.target.value)})}>
+          {voiceOptions.map((v, i) => (
+            <option key={i} value={i}>
+              {v.name}
+            </option>
+          ))}
+        </select>
+      </div>
+      <button onClick={startGame} className="w-full bg-tusgu-blue text-white py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 shadow-lg shadow-blue-900/20 active:scale-[0.98] transition-all"><Play className="w-6 h-6" /> Start Session</button>
     </div>
   );
 
   const renderInput = () => (
-    <div className="glass-panel p-10 rounded-3xl shadow-soft max-w-lg mx-auto w-full text-center animate-in zoom-in-95 duration-300 dark:border-slate-700">
-      <h3 className="text-xl font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-8">What is the result?</h3>
-      <input
-        type="number"
-        autoFocus
-        value={userAnswer}
-        onChange={(e) => setUserAnswer(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && checkAnswer()}
-        className="w-full text-center text-6xl font-black text-slate-800 dark:text-white tracking-tight border-b-4 border-tusgu-blue dark:border-blue-500 focus:border-blue-400 bg-transparent focus:outline-none py-6 mb-10 placeholder-gray-200 dark:placeholder-slate-700 transition-colors"
-        placeholder="0"
-      />
-      <button 
-        onClick={checkAnswer}
-        className="w-full bg-emerald-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 transition-all active:scale-[0.98]"
-      >
-        Submit Answer
-      </button>
+    <div className="glass-panel rounded-3xl shadow-soft w-full max-w-md mx-auto flex flex-col justify-center overflow-hidden">
+      <div className="p-6 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 text-center">
+        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Result</h3>
+        <div className="text-5xl font-black text-slate-800 dark:text-white h-16">{userAnswer || <span className="text-slate-200 dark:text-slate-700">?</span>}</div>
+      </div>
+      <div className="p-2">
+        <NumberPad value={userAnswer} onChange={setUserAnswer} onSubmit={checkAnswer} />
+      </div>
     </div>
   );
 
   const renderFeedback = () => {
     const isCorrect = parseInt(userAnswer) === expectedAnswer;
     return (
-      <div className="glass-panel p-10 rounded-3xl shadow-soft max-w-lg mx-auto w-full text-center animate-in zoom-in-95 duration-300 dark:border-slate-700 relative">
-        <div className="absolute top-6 right-6 flex items-center gap-2 text-slate-400 dark:text-slate-500 font-bold text-sm bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">
-            <Trophy className="w-4 h-4 text-yellow-500" />
-            <span>{score} / {totalQuestions}</span>
+      <div className="glass-panel p-8 rounded-3xl shadow-soft w-full max-w-lg mx-auto text-center animate-in zoom-in-95 duration-300 relative flex flex-col justify-center">
+        <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4 ${isCorrect ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+           {isCorrect ? <span className="text-4xl">✓</span> : <span className="text-4xl">✗</span>}
         </div>
-
-        <div className={`w-24 h-24 mx-auto rounded-full flex items-center justify-center mb-6 ${isCorrect ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'}`}>
-           {isCorrect ? <span className="text-5xl">✓</span> : <span className="text-5xl">✗</span>}
+        <h2 className={`text-3xl font-black mb-2 ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>{isCorrect ? 'Correct!' : 'Incorrect'}</h2>
+        <div className="my-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
+           <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Answer</p>
+           <p className="text-4xl font-black text-slate-800 dark:text-white">{expectedAnswer}</p>
+           {!isCorrect && <p className="text-red-400 mt-1 text-sm">You wrote {userAnswer}</p>}
         </div>
-        <h2 className={`text-4xl font-black mb-2 ${isCorrect ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-          {isCorrect ? 'Correct!' : 'Incorrect'}
-        </h2>
-        <div className="my-8 p-6 bg-slate-50 dark:bg-slate-800 rounded-xl">
-           <p className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-2">The answer is</p>
-           <p className="text-5xl font-black text-slate-800 dark:text-white">{expectedAnswer}</p>
-           {!isCorrect && <p className="text-red-400 mt-2 font-medium">You wrote {userAnswer}</p>}
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <button 
-            onClick={resetGame}
-            className="flex items-center justify-center gap-2 py-4 px-6 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 font-bold text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all"
-          >
-            <Settings className="w-5 h-5" /> Settings
-          </button>
-          <button 
-            onClick={nextQuestion}
-            className="flex items-center justify-center gap-2 py-4 px-6 rounded-xl bg-tusgu-blue text-white font-bold hover:bg-blue-900 shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98]"
-          >
-            <RefreshCw className="w-5 h-5" /> Next
-          </button>
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={() => setGameState(GameState.CONFIG)} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-slate-600 dark:text-slate-300"><Settings className="w-5 h-5" /> Setup</button>
+          <button onClick={startGame} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-tusgu-blue text-white font-bold"><RefreshCw className="w-5 h-5" /> Next</button>
         </div>
       </div>
     );
   };
 
   return (
-    <Layout title="Listening Practice">
+    <Layout title="Listening">
       {gameState === GameState.CONFIG && renderConfig()}
-      {gameState === GameState.PLAYING && renderPlaying()}
+      {gameState === GameState.PLAYING && (
+        <div className="flex flex-col items-center justify-center h-full animate-in fade-in duration-500">
+           <div className={`relative w-48 h-48 rounded-full flex items-center justify-center ${isPlaying ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-gray-50'}`}>
+             {isPlaying && <div className="absolute inset-0 rounded-full border-4 border-blue-100 animate-ping opacity-20"></div>}
+             <Volume2 className="w-24 h-24 text-tusgu-blue" />
+           </div>
+           <button onClick={stopGame} className="mt-12 flex items-center gap-2 px-8 py-3 bg-red-50 text-red-600 rounded-full font-bold"><Square className="w-5 h-5" /> Stop</button>
+        </div>
+      )}
       {gameState === GameState.INPUT && renderInput()}
       {gameState === GameState.FEEDBACK && renderFeedback()}
     </Layout>
