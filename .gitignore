@@ -1,4 +1,35 @@
-# Logs
+# --- 1. Capacitor & Android (The Fresh Start) ---
+# We ignore the /android folder so it stays local to your machine
+/android
+/ios
+
+# Never push your signing keys or sensitive credentials
+*.jks
+*.keystore
+*.p12
+key.properties
+google-services.json
+
+# Local Android SDK paths and Gradle settings
+local.properties
+.gradle
+build/
+captial.build.gradle
+
+
+# --- 2. Web Build & Dependencies ---
+# Ignore the dependencies installed via npm
+node_modules/
+
+# Ignore the web production builds (Capacitor copies these to Android)
+dist/
+dist-ssr/
+www/
+build/
+out/
+
+
+# --- 3. Logs & Debugging ---
 logs
 *.log
 npm-debug.log*
@@ -7,18 +38,23 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
 
-# Editor directories and files
+# --- 4. Environment & Secrets ---
+.env
+*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+
+# --- 5. Editor & OS Specific ---
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+thumbs.db
