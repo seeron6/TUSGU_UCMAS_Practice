@@ -6,6 +6,8 @@ import { FlashPractice } from './pages/FlashPractice';
 import { NewsBoard } from './pages/NewsBoard';
 import { AdminNews } from './pages/AdminNews';
 import { Stats } from './pages/Stats';
+import { AbacusPractice } from './pages/AbacusPractice';
+import { Layout } from './components/Layout';
 import { ThemeProvider } from './contexts/ThemeContext';
 
 function App() {
@@ -19,6 +21,7 @@ function App() {
           <Route path="/news" element={<NewsBoard />} />
           <Route path="/admin/news" element={<AdminNews />} />
           <Route path="/stats" element={<Stats />} />
+          <Route path="/abacus" element={<AbacusPractice />} />
         </Routes>
       </Router>
     </ThemeProvider>

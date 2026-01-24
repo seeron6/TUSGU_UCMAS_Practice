@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// Ensure you have placed your image at src/assets/logo.png
+// INFO: Ensure 'assets/logo.png' exists in your project root.
 import logoSrc from '../assets/logo.png';
 
 export const Logo: React.FC<{ size?: 'sm' | 'lg', variant?: 'white' | 'blue' }> = ({ size = 'lg', variant = 'blue' }) => {
@@ -32,7 +32,8 @@ export const Logo: React.FC<{ size?: 'sm' | 'lg', variant?: 'white' | 'blue' }> 
       
       // If valid click (not a long press), go to website or home
       if (!longPressTriggeredRef.current) {
-        window.open('https://www.tusgu.org/', '_blank');
+        // You can change this to navigate('/') if you want it to go to Dashboard
+        // navigate('/'); 
       }
     }
   };
@@ -56,13 +57,14 @@ export const Logo: React.FC<{ size?: 'sm' | 'lg', variant?: 'white' | 'blue' }> 
         {/* 
            Adjust the 'h-32' (height) classes below to fit your specific logo's aspect ratio.
            isLarge is used on the Dashboard, !isLarge is used in the Header.
+           Updated to h-24 on mobile to fit better in tight spaces.
         */}
         <img 
           src={logoSrc} 
           alt="TUSGU Logo" 
           className={`
             object-contain 
-            ${isLarge ? 'h-30 md:h-40' : 'h-10'} 
+            ${isLarge ? 'h-24 md:h-40' : 'h-10'} 
             ${variant === 'white' ? 'brightness-0 invert' : ''} /* Optional: Makes logo white in header if it's transparent PNG */
           `} 
         />

@@ -40,8 +40,8 @@ export const FlashPractice: React.FC = () => {
   const getFontSize = () => {
     switch(config.fontSize) {
       case 'small': return 'text-8xl';
-      case 'large': return 'text-[10rem] md:text-[14rem]';
-      default: return 'text-9xl md:text-[12rem]';
+      case 'large': return 'text-[15rem] md:text-[20rem]';
+      default: return 'text-[10rem] md:text-[15rem]';
     }
   };
 
@@ -115,66 +115,66 @@ export const FlashPractice: React.FC = () => {
   };
 
   const renderConfig = () => (
-    <div className="glass-panel p-6 rounded-3xl shadow-soft w-full max-w-lg mx-auto animate-in zoom-in-95 duration-300 relative flex flex-col gap-6">
+    <div className="glass-panel p-8 md:p-12 rounded-[3rem] shadow-soft w-full max-w-5xl mx-auto animate-in zoom-in-95 duration-300 relative flex flex-col gap-10">
        {totalQuestions > 0 && (
-          <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-white dark:bg-slate-800 shadow-md border border-slate-100 dark:border-slate-600 rounded-full px-6 py-2 flex items-center gap-2 z-10">
-            <Trophy className="w-4 h-4 text-yellow-500" />
-            <span className="font-bold text-slate-700 dark:text-slate-200">Score: {score} / {totalQuestions}</span>
+          <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-white dark:bg-slate-800 shadow-lg border border-slate-100 dark:border-slate-600 rounded-full px-8 py-3 flex items-center gap-3 z-10">
+            <Trophy className="w-6 h-6 text-yellow-500" />
+            <span className="font-bold text-slate-700 dark:text-slate-200 text-xl">Score: {score} / {totalQuestions}</span>
           </div>
        )}
-       <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-500 uppercase">Digits</label>
+       <div className="grid grid-cols-2 gap-8">
+          <div className="space-y-4">
+            <label className="text-base font-bold text-gray-500 uppercase tracking-wide ml-1">Digits</label>
             <input 
               type="tel" 
               inputMode="numeric"
               pattern="[0-9]*"
               value={digitsInput} 
               onChange={(e) => setDigitsInput(e.target.value.replace(/\D/g,''))} 
-              className="w-full p-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-xl font-bold text-center text-tusgu-blue dark:text-blue-300 outline-none" 
+              className="w-full p-6 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-3xl text-3xl font-bold text-center text-tusgu-blue dark:text-blue-300 outline-none" 
             />
           </div>
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-500 uppercase">Rows</label>
+          <div className="space-y-4">
+            <label className="text-base font-bold text-gray-500 uppercase tracking-wide ml-1">Rows</label>
             <input 
               type="tel" 
               inputMode="numeric"
               pattern="[0-9]*"
               value={termsInput} 
               onChange={(e) => setTermsInput(e.target.value.replace(/\D/g,''))} 
-              className="w-full p-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-xl font-bold text-center text-tusgu-blue dark:text-blue-300 outline-none" 
+              className="w-full p-6 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-3xl text-3xl font-bold text-center text-tusgu-blue dark:text-blue-300 outline-none" 
             />
           </div>
        </div>
-       <div onClick={() => setConfig({ ...config, onlyPositive: !config.onlyPositive })} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 rounded-xl active:bg-slate-100 dark:active:bg-slate-700 transition-colors cursor-pointer select-none">
-           <div className="flex items-center gap-3">
-             <div className={`w-6 h-6 rounded-md flex items-center justify-center border ${config.onlyPositive ? 'bg-tusgu-blue text-white border-transparent' : 'bg-gray-100 border-gray-300 text-transparent'}`}>{config.onlyPositive && <Check className="w-4 h-4" />}</div>
-             <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">Addition Only</span>
+       <div onClick={() => setConfig({ ...config, onlyPositive: !config.onlyPositive })} className="flex items-center justify-between p-6 bg-gray-50 dark:bg-slate-800 border border-gray-200 rounded-3xl active:bg-slate-100 dark:active:bg-slate-700 transition-colors cursor-pointer select-none">
+           <div className="flex items-center gap-5">
+             <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${config.onlyPositive ? 'bg-tusgu-blue text-white border-transparent' : 'bg-gray-100 border-gray-300 text-transparent'}`}>{config.onlyPositive && <Check className="w-6 h-6" />}</div>
+             <span className="font-bold text-slate-700 dark:text-slate-200 text-xl">Addition Only</span>
            </div>
        </div>
-       <div className="space-y-2">
-          <label className="text-xs font-bold text-gray-500 uppercase">Speed</label>
-          <select className="w-full p-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl font-medium outline-none" value={config.speed} onChange={(e) => setConfig({...config, speed: parseInt(e.target.value)})}>
+       <div className="space-y-4">
+          <label className="text-base font-bold text-gray-500 uppercase tracking-wide ml-1">Speed</label>
+          <select className="w-full p-6 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-3xl font-bold text-xl outline-none" value={config.speed} onChange={(e) => setConfig({...config, speed: parseInt(e.target.value)})}>
              {[2000, 1500, 1000, 700, 500, 250].map((s, i) => <option key={s} value={s}>Level {i+1} ({s}ms)</option>)}
           </select>
        </div>
-       <button onClick={startGame} className="w-full bg-tusgu-blue text-white py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 active:scale-[0.98] transition-transform shadow-lg shadow-blue-900/20"><Play className="w-6 h-6" /> Start Flash</button>
+       <button onClick={startGame} className="w-full bg-tusgu-blue text-white py-6 rounded-3xl font-bold text-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-transform shadow-lg shadow-blue-900/20"><Play className="w-8 h-8" /> Start Flash</button>
     </div>
   );
 
   return (
-    <Layout title="Flash">
+    <Layout title="Flash" center={true}>
       {gameState === GameState.CONFIG && renderConfig()}
       
       {gameState === GameState.PLAYING && (
-        <div className="flex flex-col flex-grow w-full max-w-4xl mx-auto gap-6 justify-center py-2 h-full">
+        <div className="flex flex-col flex-grow w-full max-w-7xl mx-auto gap-10 justify-center py-6 h-full">
             {/* 
                 Flash Card Container 
                 - flex-grow ensures it takes up most of the screen
                 - Fixed white/dark background (Does not flicker)
                 - Centered content
             */}
-            <div className="flex-grow w-full bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-700 flex items-center justify-center overflow-hidden relative min-h-[50vh]">
+            <div className="flex-grow w-full bg-white dark:bg-slate-800 rounded-[3rem] shadow-2xl border border-slate-100 dark:border-slate-700 flex items-center justify-center overflow-hidden relative min-h-[50vh]">
                  {/* The number is strictly centered and absolutely positioned to avoid layout shift */}
                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     {currentNumber && (
@@ -188,39 +188,39 @@ export const FlashPractice: React.FC = () => {
             {/* Stop Button */}
             <button 
                 onClick={stopGame} 
-                className="w-full py-5 bg-red-500 text-white rounded-2xl font-bold text-xl shadow-lg shadow-red-500/30 active:scale-95 transition-transform flex items-center justify-center gap-3 flex-shrink-0"
+                className="w-full py-8 bg-red-500 text-white rounded-[2rem] font-bold text-3xl shadow-lg shadow-red-500/30 active:scale-95 transition-transform flex items-center justify-center gap-4 flex-shrink-0"
             >
-                <Square className="w-6 h-6 fill-current" /> Stop Session
+                <Square className="w-10 h-10 fill-current" /> Stop Session
             </button>
         </div>
       )}
 
       {gameState === GameState.INPUT && (
-        <div className="glass-panel rounded-3xl shadow-soft w-full max-w-md mx-auto flex flex-col justify-center overflow-hidden animate-in zoom-in-95 duration-300">
-          <div className="p-6 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 text-center">
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Result</h3>
-            <div className="text-5xl font-black text-slate-800 dark:text-white h-16">{userAnswer || <span className="text-slate-200 dark:text-slate-700">?</span>}</div>
+        <div className="glass-panel rounded-[3rem] shadow-soft w-full max-w-4xl mx-auto flex flex-col justify-center overflow-hidden animate-in zoom-in-95 duration-300">
+          <div className="p-12 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 text-center">
+            <h3 className="text-lg font-bold text-slate-400 uppercase tracking-widest mb-4">Result</h3>
+            <div className="text-8xl md:text-9xl font-black text-slate-800 dark:text-white h-24 md:h-32">{userAnswer || <span className="text-slate-200 dark:text-slate-700">?</span>}</div>
           </div>
-          <div className="p-2">
+          <div className="p-6 w-full max-w-xl mx-auto">
             <NumberPad value={userAnswer} onChange={setUserAnswer} onSubmit={checkAnswer} />
           </div>
         </div>
       )}
 
       {gameState === GameState.FEEDBACK && (
-          <div className="glass-panel p-8 rounded-3xl shadow-soft w-full max-w-lg mx-auto text-center animate-in zoom-in-95 duration-300 relative flex flex-col justify-center">
-            <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4 ${parseInt(userAnswer) === expectedAnswer ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-            {parseInt(userAnswer) === expectedAnswer ? <span className="text-4xl">✓</span> : <span className="text-4xl">✗</span>}
+          <div className="glass-panel p-12 rounded-[3rem] shadow-soft w-full max-w-4xl mx-auto text-center animate-in zoom-in-95 duration-300 relative flex flex-col justify-center">
+            <div className={`w-32 h-32 mx-auto rounded-full flex items-center justify-center mb-8 ${parseInt(userAnswer) === expectedAnswer ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+            {parseInt(userAnswer) === expectedAnswer ? <span className="text-6xl">✓</span> : <span className="text-6xl">✗</span>}
             </div>
-            <h2 className={`text-3xl font-black mb-2 ${parseInt(userAnswer) === expectedAnswer ? 'text-green-600' : 'text-red-600'}`}>{parseInt(userAnswer) === expectedAnswer ? 'Correct!' : 'Incorrect'}</h2>
-            <div className="my-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
-            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Answer</p>
-            <p className="text-4xl font-black text-slate-800 dark:text-white">{expectedAnswer}</p>
-            {parseInt(userAnswer) !== expectedAnswer && <p className="text-red-400 mt-1 text-sm">You wrote {userAnswer}</p>}
+            <h2 className={`text-5xl font-black mb-4 ${parseInt(userAnswer) === expectedAnswer ? 'text-green-600' : 'text-red-600'}`}>{parseInt(userAnswer) === expectedAnswer ? 'Correct!' : 'Incorrect'}</h2>
+            <div className="my-10 p-8 bg-slate-50 dark:bg-slate-800 rounded-[2rem]">
+            <p className="text-slate-500 text-base font-bold uppercase tracking-widest mb-3">Answer</p>
+            <p className="text-6xl font-black text-slate-800 dark:text-white">{expectedAnswer}</p>
+            {parseInt(userAnswer) !== expectedAnswer && <p className="text-red-400 mt-4 text-xl">You wrote {userAnswer}</p>}
             </div>
-            <div className="grid grid-cols-2 gap-3">
-            <button onClick={() => setGameState(GameState.CONFIG)} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-slate-600 dark:text-slate-300"><Settings className="w-5 h-5" /> Setup</button>
-            <button onClick={startGame} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-tusgu-blue text-white font-bold"><RefreshCw className="w-5 h-5" /> Next</button>
+            <div className="grid grid-cols-2 gap-6">
+            <button onClick={() => setGameState(GameState.CONFIG)} className="flex items-center justify-center gap-3 py-6 rounded-3xl bg-slate-100 dark:bg-slate-800 font-bold text-xl text-slate-600 dark:text-slate-300"><Settings className="w-7 h-7" /> Setup</button>
+            <button onClick={startGame} className="flex items-center justify-center gap-3 py-6 rounded-3xl bg-tusgu-blue text-white font-bold text-xl"><RefreshCw className="w-7 h-7" /> Next</button>
             </div>
         </div>
       )}
