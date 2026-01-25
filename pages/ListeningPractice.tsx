@@ -244,70 +244,75 @@ export const ListeningPractice: React.FC = () => {
   };
 
   const renderConfig = () => (
-    <div className="glass-panel p-8 md:p-12 rounded-[3rem] shadow-soft w-full max-w-5xl mx-auto animate-in zoom-in-95 duration-300 relative flex flex-col gap-10">
+    <div className="glass-panel p-5 md:p-12 rounded-[2rem] md:rounded-[3rem] shadow-soft w-full max-w-5xl mx-auto animate-in zoom-in-95 duration-300 relative flex flex-col gap-3 md:gap-8 justify-center">
       {totalQuestions > 0 && (
-        <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-white dark:bg-slate-800 shadow-lg border border-slate-100 dark:border-slate-600 rounded-full px-8 py-3 flex items-center gap-3 z-10">
-          <Trophy className="w-6 h-6 text-yellow-500" />
-          <span className="font-bold text-slate-700 dark:text-slate-200 text-xl">Score: {score} / {totalQuestions}</span>
+        <div className="absolute -top-4 md:-top-6 left-1/2 -translate-x-1/2 bg-white dark:bg-slate-800 shadow-lg border border-slate-100 dark:border-slate-600 rounded-full px-6 py-2 md:px-8 md:py-3 flex items-center gap-2 md:gap-3 z-10">
+          <Trophy className="w-4 h-4 md:w-6 md:h-6 text-yellow-500" />
+          <span className="font-bold text-slate-700 dark:text-slate-200 text-sm md:text-xl">Score: {score} / {totalQuestions}</span>
         </div>
       )}
-      <div className="grid grid-cols-2 gap-8">
-        <div className="space-y-4">
-          <label className="text-base font-bold text-gray-500 uppercase tracking-wide ml-1">Digits</label>
+      <div className="grid grid-cols-2 gap-4 md:gap-8">
+        <div className="space-y-1 md:space-y-4">
+          <label className="text-xs md:text-base font-bold text-gray-500 uppercase tracking-wide ml-1">Digits</label>
           <input 
             type="tel" 
             inputMode="numeric"
             pattern="[0-9]*"
             value={digitsInput} 
             onChange={(e) => setDigitsInput(e.target.value.replace(/\D/g,''))} 
-            className="w-full p-6 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-3xl text-3xl font-bold text-center text-tusgu-blue dark:text-blue-300 outline-none" 
+            className="w-full p-3 md:p-6 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl md:rounded-3xl text-2xl md:text-3xl font-bold text-center text-tusgu-blue dark:text-blue-300 outline-none shadow-sm" 
           />
         </div>
-        <div className="space-y-4">
-          <label className="text-base font-bold text-gray-500 uppercase tracking-wide ml-1">Rows</label>
+        <div className="space-y-1 md:space-y-4">
+          <label className="text-xs md:text-base font-bold text-gray-500 uppercase tracking-wide ml-1">Rows</label>
           <input 
             type="tel" 
             inputMode="numeric"
             pattern="[0-9]*"
             value={termsInput} 
             onChange={(e) => setTermsInput(e.target.value.replace(/\D/g,''))} 
-            className="w-full p-6 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-3xl text-3xl font-bold text-center text-tusgu-blue dark:text-blue-300 outline-none" 
+            className="w-full p-3 md:p-6 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl md:rounded-3xl text-2xl md:text-3xl font-bold text-center text-tusgu-blue dark:text-blue-300 outline-none shadow-sm" 
           />
         </div>
       </div>
-      <div onClick={() => setConfig({ ...config, onlyPositive: !config.onlyPositive })} className="flex items-center justify-between p-6 bg-gray-50 dark:bg-slate-800 border border-gray-200 rounded-3xl cursor-pointer">
-         <div className="flex items-center gap-5">
-           <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${config.onlyPositive ? 'bg-tusgu-blue text-white' : 'bg-gray-200 text-gray-400'}`}>{config.onlyPositive && <Check className="w-6 h-6" />}</div>
-           <span className="font-bold text-slate-700 dark:text-slate-200 text-xl">Addition Only</span>
+      <div onClick={() => setConfig({ ...config, onlyPositive: !config.onlyPositive })} className="flex items-center justify-between p-3 md:p-6 bg-gray-50 dark:bg-slate-800 border border-gray-200 rounded-2xl md:rounded-3xl cursor-pointer shadow-sm active:scale-95 transition-transform">
+         <div className="flex items-center gap-3 md:gap-5">
+           <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl flex items-center justify-center ${config.onlyPositive ? 'bg-tusgu-blue text-white' : 'bg-gray-200 text-gray-400'}`}>{config.onlyPositive && <Check className="w-5 h-5 md:w-6 md:h-6" />}</div>
+           <span className="font-bold text-slate-700 dark:text-slate-200 text-sm md:text-xl">Addition Only</span>
          </div>
       </div>
-      <div className="space-y-4">
-         <label className="text-base font-bold text-gray-500 uppercase tracking-wide ml-1">Speed</label>
-         <select className="w-full p-6 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-3xl font-bold text-xl outline-none" value={config.listeningSpeed} onChange={(e) => setConfig({...config, listeningSpeed: parseFloat(e.target.value)})}>
-           {[1.0, 1.2, 1.4, 1.6, 1.8, 2.0].map(v => <option key={v} value={v}>Level {((v-0.8)/0.2).toFixed(0)}</option>)}
-         </select>
+      
+      {/* Speed & Instructor - Grid on Mobile, Stack on Desktop */}
+      <div className="grid grid-cols-2 md:grid-cols-1 gap-4 md:gap-8">
+        <div className="space-y-1 md:space-y-4">
+           <label className="text-xs md:text-base font-bold text-gray-500 uppercase tracking-wide ml-1">Speed</label>
+           <select className="w-full p-3 md:p-6 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl md:rounded-3xl font-bold text-sm md:text-xl outline-none shadow-sm" value={config.listeningSpeed} onChange={(e) => setConfig({...config, listeningSpeed: parseFloat(e.target.value)})}>
+             {[1.0, 1.2, 1.4, 1.6, 1.8, 2.0].map(v => <option key={v} value={v}>Level {((v-0.8)/0.2).toFixed(0)}</option>)}
+           </select>
+        </div>
+        <div className="space-y-1 md:space-y-4">
+          <label className="text-xs md:text-base font-bold text-gray-500 uppercase tracking-wide ml-1">Instructor</label>
+          <select className="w-full p-3 md:p-6 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl md:rounded-3xl font-bold text-sm md:text-xl outline-none shadow-sm" value={config.voiceIndex} onChange={(e) => setConfig({...config, voiceIndex: parseInt(e.target.value)})}>
+            {voiceOptions.map((v, i) => (
+              <option key={i} value={i}>
+                {v.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
-      <div className="space-y-4">
-        <label className="text-base font-bold text-gray-500 uppercase tracking-wide ml-1">Instructor</label>
-        <select className="w-full p-6 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-3xl font-bold text-xl outline-none" value={config.voiceIndex} onChange={(e) => setConfig({...config, voiceIndex: parseInt(e.target.value)})}>
-          {voiceOptions.map((v, i) => (
-            <option key={i} value={i}>
-              {v.name}
-            </option>
-          ))}
-        </select>
-      </div>
-      <button onClick={startGame} className="w-full bg-tusgu-blue text-white py-6 rounded-3xl font-bold text-2xl flex items-center justify-center gap-3 shadow-lg shadow-blue-900/20 active:scale-[0.98] transition-all"><Play className="w-8 h-8" /> Start Session</button>
+
+      <button onClick={startGame} className="w-full bg-tusgu-blue text-white py-4 md:py-6 rounded-2xl md:rounded-3xl font-bold text-lg md:text-2xl flex items-center justify-center gap-2 md:gap-3 shadow-lg shadow-blue-900/20 active:scale-[0.98] transition-all"><Play className="w-6 h-6 md:w-8 md:h-8" /> Start Session</button>
     </div>
   );
 
   const renderInput = () => (
-    <div className="glass-panel rounded-[3rem] shadow-soft w-full max-w-4xl mx-auto flex flex-col justify-center overflow-hidden">
-      <div className="p-12 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 text-center">
-        <h3 className="text-lg font-bold text-slate-400 uppercase tracking-widest mb-4">Result</h3>
-        <div className="text-8xl md:text-9xl font-black text-slate-800 dark:text-white h-24 md:h-32">{userAnswer || <span className="text-slate-200 dark:text-slate-700">?</span>}</div>
+    <div className="glass-panel rounded-[2rem] md:rounded-[3rem] shadow-soft w-full max-w-4xl mx-auto flex flex-col justify-center overflow-hidden">
+      <div className="p-8 md:p-12 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 text-center">
+        <h3 className="text-sm md:text-lg font-bold text-slate-400 uppercase tracking-widest mb-2 md:mb-4">Result</h3>
+        <div className="text-7xl md:text-9xl font-black text-slate-800 dark:text-white h-20 md:h-32">{userAnswer || <span className="text-slate-200 dark:text-slate-700">?</span>}</div>
       </div>
-      <div className="p-6 w-full max-w-xl mx-auto">
+      <div className="p-4 md:p-6 w-full max-w-xl mx-auto">
         <NumberPad value={userAnswer} onChange={setUserAnswer} onSubmit={checkAnswer} />
       </div>
     </div>
@@ -316,19 +321,19 @@ export const ListeningPractice: React.FC = () => {
   const renderFeedback = () => {
     const isCorrect = parseInt(userAnswer) === expectedAnswer;
     return (
-      <div className="glass-panel p-12 rounded-[3rem] shadow-soft w-full max-w-4xl mx-auto text-center animate-in zoom-in-95 duration-300 relative flex flex-col justify-center">
-        <div className={`w-32 h-32 mx-auto rounded-full flex items-center justify-center mb-8 ${isCorrect ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-           {isCorrect ? <span className="text-6xl">✓</span> : <span className="text-6xl">✗</span>}
+      <div className="glass-panel p-6 md:p-12 rounded-[2rem] md:rounded-[3rem] shadow-soft w-full max-w-4xl mx-auto text-center animate-in zoom-in-95 duration-300 relative flex flex-col justify-center">
+        <div className={`w-24 h-24 md:w-32 md:h-32 mx-auto rounded-full flex items-center justify-center mb-6 md:mb-8 ${isCorrect ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+           {isCorrect ? <span className="text-5xl md:text-6xl">✓</span> : <span className="text-5xl md:text-6xl">✗</span>}
         </div>
-        <h2 className={`text-5xl font-black mb-4 ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>{isCorrect ? 'Correct!' : 'Incorrect'}</h2>
-        <div className="my-10 p-8 bg-slate-50 dark:bg-slate-800 rounded-[2rem]">
-           <p className="text-slate-500 text-base font-bold uppercase tracking-widest mb-3">Answer</p>
-           <p className="text-6xl font-black text-slate-800 dark:text-white">{expectedAnswer}</p>
-           {!isCorrect && <p className="text-red-400 mt-4 text-xl">You wrote {userAnswer}</p>}
+        <h2 className={`text-4xl md:text-5xl font-black mb-2 md:mb-4 ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>{isCorrect ? 'Correct!' : 'Incorrect'}</h2>
+        <div className="my-6 md:my-10 p-6 md:p-8 bg-slate-50 dark:bg-slate-800 rounded-[2rem]">
+           <p className="text-slate-500 text-xs md:text-base font-bold uppercase tracking-widest mb-2 md:mb-3">Answer</p>
+           <p className="text-5xl md:text-6xl font-black text-slate-800 dark:text-white">{expectedAnswer}</p>
+           {!isCorrect && <p className="text-red-400 mt-2 md:mt-4 text-lg md:text-xl">You wrote {userAnswer}</p>}
         </div>
-        <div className="grid grid-cols-2 gap-6">
-          <button onClick={() => setGameState(GameState.CONFIG)} className="flex items-center justify-center gap-3 py-6 rounded-3xl bg-slate-100 dark:bg-slate-800 font-bold text-xl text-slate-600 dark:text-slate-300"><Settings className="w-7 h-7" /> Setup</button>
-          <button onClick={startGame} className="flex items-center justify-center gap-3 py-6 rounded-3xl bg-tusgu-blue text-white font-bold text-xl"><RefreshCw className="w-7 h-7" /> Next</button>
+        <div className="grid grid-cols-2 gap-4 md:gap-6">
+          <button onClick={() => setGameState(GameState.CONFIG)} className="flex items-center justify-center gap-2 md:gap-3 py-4 md:py-6 rounded-2xl md:rounded-3xl bg-slate-100 dark:bg-slate-800 font-bold text-lg md:text-xl text-slate-600 dark:text-slate-300"><Settings className="w-5 h-5 md:w-7 md:h-7" /> Setup</button>
+          <button onClick={startGame} className="flex items-center justify-center gap-2 md:gap-3 py-4 md:py-6 rounded-2xl md:rounded-3xl bg-tusgu-blue text-white font-bold text-lg md:text-xl"><RefreshCw className="w-5 h-5 md:w-7 md:h-7" /> Next</button>
         </div>
       </div>
     );
@@ -339,11 +344,11 @@ export const ListeningPractice: React.FC = () => {
       {gameState === GameState.CONFIG && renderConfig()}
       {gameState === GameState.PLAYING && (
         <div className="flex flex-col items-center justify-center h-full animate-in fade-in duration-500">
-           <div className={`relative w-80 h-80 rounded-full flex items-center justify-center ${isPlaying ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-gray-50'}`}>
+           <div className={`relative w-64 h-64 md:w-80 md:h-80 rounded-full flex items-center justify-center ${isPlaying ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-gray-50'}`}>
              {isPlaying && <div className="absolute inset-0 rounded-full border-4 border-blue-100 animate-ping opacity-20"></div>}
-             <Volume2 className="w-40 h-40 text-tusgu-blue" />
+             <Volume2 className="w-32 h-32 md:w-40 md:h-40 text-tusgu-blue" />
            </div>
-           <button onClick={stopGame} className="mt-20 flex items-center gap-4 px-12 py-5 bg-red-50 text-red-600 rounded-full font-bold text-2xl"><Square className="w-8 h-8" /> Stop</button>
+           <button onClick={stopGame} className="mt-12 md:mt-20 flex items-center gap-3 md:gap-4 px-8 md:px-12 py-4 md:py-5 bg-red-50 text-red-600 rounded-full font-bold text-xl md:text-2xl"><Square className="w-6 h-6 md:w-8 md:h-8" /> Stop</button>
         </div>
       )}
       {gameState === GameState.INPUT && renderInput()}
