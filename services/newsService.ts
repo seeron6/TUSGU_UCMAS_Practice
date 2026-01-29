@@ -49,7 +49,7 @@ export const submitRequest = async (data: { email: string; phone: string; materi
     .insert([data]);
   
   if (error) {
-    console.error('Error submitting request:', error);
+    console.error('Error submission request:', error);
     throw error;
   }
 };
