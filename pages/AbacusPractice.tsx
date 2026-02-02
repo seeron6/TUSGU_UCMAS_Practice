@@ -163,34 +163,34 @@ const CumulativeGame: React.FC<{ onExit: () => void }> = ({ onExit }) => {
   }
 
   return (
-    <div className="flex flex-col h-full max-w-6xl mx-auto relative overflow-hidden pt-4 w-full">
-       {/* Top Section: Progress & Info */}
-       <div className="flex-shrink-0 pt-2 pb-4 px-1">
-          <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full mb-4 overflow-hidden">
+    <div className="flex flex-col h-full max-w-6xl mx-auto relative overflow-hidden pt-2 w-full">
+       {/* Top Section: Progress & Info - Compact */}
+       <div className="flex-shrink-0 pt-1 pb-2 px-1">
+          <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mb-2 overflow-hidden">
              <div className="h-full bg-tusgu-blue transition-all duration-500" style={{ width: `${checkpoint * 10}%` }}></div>
           </div>
           
           <div className="text-center">
-            <div className="text-slate-400 font-bold uppercase tracking-widest text-xs mb-1">Target Range</div>
-            <div className="text-3xl font-bold text-slate-800 dark:text-white">
-               {((checkpoint - 1) * 10) + 1} <span className="text-slate-300 text-xl mx-2">➔</span> {checkpoint * 10}
+            <div className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-0.5">Target Range</div>
+            <div className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">
+               {((checkpoint - 1) * 10) + 1} <span className="text-slate-300 mx-2">➔</span> {checkpoint * 10}
             </div>
           </div>
        </div>
 
-       {/* Middle Section: Display - Grows to fill space */}
-       <div className="flex-1 flex flex-col items-center justify-center min-h-0">
+       {/* Middle Section: Display - Flexible with min-h-0 to allow shrinking */}
+       <div className="flex-1 flex flex-col items-center justify-center min-h-0 py-2">
           {status === 'playing' ? (
-             <div className="w-full max-w-sm md:max-w-xl bg-slate-50 dark:bg-slate-800 p-8 md:p-12 rounded-[2.5rem] text-center border border-slate-200 dark:border-slate-700 shadow-inner">
-               <div className="text-sm md:text-base text-slate-400 uppercase font-bold mb-2">Your Total</div>
-               <div className="text-6xl md:text-7xl font-mono font-bold text-slate-800 dark:text-white truncate h-20 md:h-24 flex items-center justify-center">
+             <div className="w-full max-w-xs md:max-w-xl bg-slate-50 dark:bg-slate-800 p-4 md:p-12 rounded-[2rem] text-center border border-slate-200 dark:border-slate-700 shadow-inner">
+               <div className="text-xs md:text-base text-slate-400 uppercase font-bold mb-1">Your Total</div>
+               <div className="text-5xl md:text-7xl font-mono font-bold text-slate-800 dark:text-white truncate h-16 md:h-24 flex items-center justify-center">
                  {userInput || <span className="opacity-20">0</span>}
                </div>
              </div>
           ) : (
              <div className="w-full max-w-md flex flex-col items-center animate-in zoom-in-95">
-                <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 ${feedback === 'correct' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                   {feedback === 'correct' ? <Check className="w-12 h-12" /> : <X className="w-12 h-12" />}
+                <div className={`w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center mb-4 md:mb-6 ${feedback === 'correct' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                   {feedback === 'correct' ? <Check className="w-10 h-10 md:w-12 md:h-12" /> : <X className="w-10 h-10 md:w-12 md:h-12" />}
                 </div>
                 <div className="text-2xl md:text-3xl font-bold text-slate-700 dark:text-slate-300">
                   {feedback === 'correct' ? 'Correct!' : 'Incorrect'}
@@ -294,8 +294,6 @@ const TimedGame: React.FC<{ mode: 'setup' | 'play', onStart: (op: '+'|'-', digit
     }
     
     // Store the generated increment in setupData for reference in result check
-    // Note: Mutating prop for local logic simplicity in this effect context, 
-    // ideally we'd use state but this works since setupData is an object ref.
     setupData.generatedNumber = randomIncrement;
     
     setStartNumber(start);

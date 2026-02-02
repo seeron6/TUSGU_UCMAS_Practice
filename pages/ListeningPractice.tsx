@@ -156,13 +156,16 @@ export const ListeningPractice: React.FC = () => {
     try { await TextToSpeech.speak({ text: ' ', rate: 2.0, volume: 0.1 }); } catch(e) {}
 
     const speedLevel = newConfig.listeningSpeed || 1.0;
-    let gapMs = 1200;
-    if (speedLevel >= 2.0) gapMs = 300;
-    else if (speedLevel >= 1.8) gapMs = 450;
-    else if (speedLevel >= 1.6) gapMs = 600;
-    else if (speedLevel >= 1.4) gapMs = 800;
-    else if (speedLevel >= 1.2) gapMs = 1000;
     
+    // Updated gap timing logic per user request
+    let gapMs = 1200;
+    if (speedLevel >= 2.0) gapMs = 0;         // Level 6: No gap
+    else if (speedLevel >= 1.8) gapMs = 50;   // Level 5: Minimal gap
+    else if (speedLevel >= 1.6) gapMs = 400;  // Level 4
+    else if (speedLevel >= 1.4) gapMs = 700;  // Level 3
+    else if (speedLevel >= 1.2) gapMs = 950;  // Level 2
+    
+    // Slight buffer for multi-digit numbers to process mentally
     if (newConfig.digits > 2) gapMs += 300;
     
     await new Promise(resolve => setTimeout(resolve, 500));
@@ -196,15 +199,20 @@ export const ListeningPractice: React.FC = () => {
       
       if (i > 0) {
         const prevItem = sequence[i - 1];
-        if (item.operation === '-') await speak("Minus", 1.4);
-        else if (item.operation === '+' && prevItem.operation === '-') await speak("Plus", 1.4);
-        await new Promise(resolve => setTimeout(resolve, 50)); 
+        // Speak operators faster to prevent lag
+        const opSpeed = Math.max(1.7, speedLevel * 1.1);
+        if (item.operation === '-') await speak("Minus", opSpeed);
+        else if (item.operation === '+' && prevItem.operation === '-') await speak("Plus", opSpeed);
+        // Removed delay after operator for seamless flow
       }
       
       if (stopRef.current) break;
       await speak(item.value.toString());
       if (stopRef.current) break;
-      await new Promise(resolve => setTimeout(resolve, gapMs));
+      // Apply the gap calculated above
+      if (gapMs > 0) {
+        await new Promise(resolve => setTimeout(resolve, gapMs));
+      }
     }
 
     if (!stopRef.current) {

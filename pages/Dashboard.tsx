@@ -18,7 +18,7 @@ export const Dashboard: React.FC = () => {
   const [count, setCount] = useState<number>(1);
 
   useEffect(() => {
-    checkReminderStatus().then(setRemindersEnabled);
+    checkReminderStatus().then(setRemindersEnabled).catch(() => setRemindersEnabled(false));
   }, []);
 
   useEffect(() => {
@@ -46,12 +46,16 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleBellClick = async () => {
-    await Haptics.impact({ style: ImpactStyle.Medium });
-    if (remindersEnabled) {
-        await cancelReminders();
-        setRemindersEnabled(false);
-    } else {
-        setShowNotifModal(true);
+    try {
+      await Haptics.impact({ style: ImpactStyle.Medium });
+      if (remindersEnabled) {
+          await cancelReminders();
+          setRemindersEnabled(false);
+      } else {
+          setShowNotifModal(true);
+      }
+    } catch (e) {
+      console.error("Bell interaction error", e);
     }
   };
 
@@ -63,7 +67,7 @@ export const Dashboard: React.FC = () => {
           await Haptics.notification({ type: NotificationType.Success });
           alert("Notifications have been turned on!");
       } else {
-          alert("Permission denied for notifications");
+          alert("Permission denied or failed to schedule.");
       }
   };
 
