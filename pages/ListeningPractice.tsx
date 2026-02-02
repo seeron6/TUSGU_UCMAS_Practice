@@ -155,18 +155,36 @@ export const ListeningPractice: React.FC = () => {
     // Warm up TTS
     try { await TextToSpeech.speak({ text: ' ', rate: 2.0, volume: 0.1 }); } catch(e) {}
 
-    const speedLevel = newConfig.listeningSpeed || 1.0;
+    const uiSpeed = newConfig.listeningSpeed || 1.0;
     
-    // Updated gap timing logic per user request
+    // --- TIMING LOGIC ---
+    // gapMs: Explicit delay in loop.
+    // effectiveRate: The actual rate sent to TTS engine.
+    
     let gapMs = 1200;
-    if (speedLevel >= 2.0) gapMs = 0;         // Level 6: No gap
-    else if (speedLevel >= 1.8) gapMs = 50;   // Level 5: Minimal gap
-    else if (speedLevel >= 1.6) gapMs = 400;  // Level 4
-    else if (speedLevel >= 1.4) gapMs = 700;  // Level 3
-    else if (speedLevel >= 1.2) gapMs = 950;  // Level 2
+    let effectiveRate = uiSpeed;
+
+    if (uiSpeed >= 2.0) {
+        // Level 6: Boost rate to 2.5 to cut intrinsic latency, 0 gap
+        gapMs = 0;
+        effectiveRate = 2.5; 
+    } else if (uiSpeed >= 1.8) {
+        // Level 5: 0 gap (rely on system latency ~50ms)
+        gapMs = 0;
+    } else if (uiSpeed >= 1.6) {
+        // Level 4
+        gapMs = 300;
+    } else if (uiSpeed >= 1.4) {
+        // Level 3
+        gapMs = 600;
+    } else if (uiSpeed >= 1.2) {
+        // Level 2
+        gapMs = 900;
+    }
     
-    // Slight buffer for multi-digit numbers to process mentally
-    if (newConfig.digits > 2) gapMs += 300;
+    // Slight buffer for multi-digit numbers to process mentally, 
+    // but drastically reduced for high levels
+    if (newConfig.digits > 2 && uiSpeed < 1.8) gapMs += 300;
     
     await new Promise(resolve => setTimeout(resolve, 500));
 
@@ -181,7 +199,7 @@ export const ListeningPractice: React.FC = () => {
         await TextToSpeech.speak({
           text: text,
           lang: selectedLang,
-          rate: speedOverride || (newConfig.listeningSpeed || 1.0),
+          rate: speedOverride || effectiveRate,
           pitch: basePitch, 
           voice: voiceIdx >= 0 ? voiceIdx : undefined,
           volume: 1.0,
@@ -199,17 +217,19 @@ export const ListeningPractice: React.FC = () => {
       
       if (i > 0) {
         const prevItem = sequence[i - 1];
-        // Speak operators faster to prevent lag
-        const opSpeed = Math.max(1.7, speedLevel * 1.1);
+        // Speak operators FAST. Minimum 2.2 rate to ensure no lag.
+        const opSpeed = Math.max(2.2, effectiveRate * 1.2);
+        
         if (item.operation === '-') await speak("Minus", opSpeed);
         else if (item.operation === '+' && prevItem.operation === '-') await speak("Plus", opSpeed);
-        // Removed delay after operator for seamless flow
+        // Absolutely no delay loop after operators
       }
       
       if (stopRef.current) break;
       await speak(item.value.toString());
       if (stopRef.current) break;
-      // Apply the gap calculated above
+      
+      // Only wait if there is an explicit gap needed
       if (gapMs > 0) {
         await new Promise(resolve => setTimeout(resolve, gapMs));
       }
