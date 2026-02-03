@@ -71,20 +71,7 @@ export const NewsBoard: React.FC = () => {
           </div>
           
           <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-16">
-            {/* TUSGU Button */}
-            <button 
-              onClick={() => handleSelect('tusgu')}
-              className="w-full bg-white dark:bg-slate-800 p-6 md:p-20 rounded-3xl md:rounded-[3rem] shadow-soft border border-slate-100 dark:border-slate-700 flex flex-col items-center gap-4 md:gap-10 group active:scale-95 transition-all"
-            >
-              <div className="h-16 md:h-40 flex items-center justify-center pointer-events-none">
-                <Logo size="lg" />
-              </div>
-              <div className="flex items-center gap-3 md:gap-4 text-tusgu-blue dark:text-blue-400 font-bold text-xl md:text-4xl">
-                TUSGU News <ArrowRight className="w-5 h-5 md:w-10 md:h-10 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </button>
-
-            {/* UCMAS Button */}
+            {/* UCMAS Button (Moved to Top/First) */}
             <button 
               onClick={() => handleSelect('ucmas')}
               className="w-full bg-white dark:bg-slate-800 p-6 md:p-20 rounded-3xl md:rounded-[3rem] shadow-soft border border-slate-100 dark:border-slate-700 flex flex-col items-center gap-4 md:gap-10 group active:scale-95 transition-all"
@@ -94,6 +81,19 @@ export const NewsBoard: React.FC = () => {
               </div>
               <div className="flex items-center gap-3 md:gap-4 text-[#1877F2] font-bold text-xl md:text-4xl">
                 UCMAS Sri Lanka <ArrowRight className="w-5 h-5 md:w-10 md:h-10 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </button>
+
+            {/* TUSGU Button (Moved to Bottom/Second) */}
+            <button 
+              onClick={() => handleSelect('tusgu')}
+              className="w-full bg-white dark:bg-slate-800 p-6 md:p-20 rounded-3xl md:rounded-[3rem] shadow-soft border border-slate-100 dark:border-slate-700 flex flex-col items-center gap-4 md:gap-10 group active:scale-95 transition-all"
+            >
+              <div className="h-16 md:h-40 flex items-center justify-center pointer-events-none">
+                <Logo size="lg" />
+              </div>
+              <div className="flex items-center gap-3 md:gap-4 text-tusgu-blue dark:text-blue-400 font-bold text-xl md:text-4xl">
+                TUSGU News <ArrowRight className="w-5 h-5 md:w-10 md:h-10 group-hover:translate-x-1 transition-transform" />
               </div>
             </button>
           </div>

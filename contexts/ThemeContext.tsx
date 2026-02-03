@@ -11,9 +11,12 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<Theme>(() => {
+    // Check local storage first
     const saved = localStorage.getItem('tusgu-theme');
     if (saved === 'dark' || saved === 'light') return saved;
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    
+    // Explicitly default to 'light' if no preference is found, ignoring system settings
+    return 'light'; 
   });
 
   useEffect(() => {
