@@ -19,14 +19,8 @@ export const scheduleReminders = async (frequency: Frequency, count: number) => 
     }
 
     const notifications = [];
-    // CAUTION: Do not use 'extra: null', it can crash Android serialization. Use undefined.
-    const baseContent = {
-      title: "Time to Practice!",
-      body: "Keep your mental math skills sharp. Do a quick 5-minute session now.",
-      sound: undefined,
-      attachments: undefined,
-      actionTypeId: "",
-    };
+    const title = "Time to Practice!";
+    const body = "Keep your mental math skills sharp. Do a quick 5-minute session now.";
 
     // 3. Scheduling Logic
     if (frequency === 'day') {
@@ -37,8 +31,9 @@ export const scheduleReminders = async (frequency: Frequency, count: number) => 
       for (let i = 0; i < count; i++) {
         const hour = count === 1 ? 17 : Math.round(startHour + (i * interval));
         notifications.push({
-          ...baseContent,
           id: i + 1,
+          title,
+          body,
           schedule: { 
             every: 'day', 
             on: { hour: hour, minute: 0 } 
@@ -58,8 +53,9 @@ export const scheduleReminders = async (frequency: Frequency, count: number) => 
 
       actualDays.forEach((dayOfWeek, idx) => {
         notifications.push({
-          ...baseContent,
           id: idx + 1,
+          title,
+          body,
           schedule: { 
             every: 'week', 
             on: { weekday: dayOfWeek, hour: 17, minute: 0 } 
@@ -78,8 +74,9 @@ export const scheduleReminders = async (frequency: Frequency, count: number) => 
 
       actualDates.forEach((date, idx) => {
          notifications.push({
-          ...baseContent,
           id: idx + 1,
+          title,
+          body,
           schedule: { 
             every: 'month', 
             on: { day: date, hour: 17, minute: 0 } 
@@ -89,8 +86,10 @@ export const scheduleReminders = async (frequency: Frequency, count: number) => 
     }
 
     // 4. Schedule Batch
-    // @ts-ignore
-    await LocalNotifications.schedule({ notifications });
+    if (notifications.length > 0) {
+        // @ts-ignore
+        await LocalNotifications.schedule({ notifications });
+    }
 
     return true;
   } catch (error) {
