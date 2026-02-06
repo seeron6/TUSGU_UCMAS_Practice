@@ -1,6 +1,9 @@
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { Capacitor } from '@capacitor/core';
 
 export type Frequency = 'day' | 'week' | 'month';
+
+const CHANNEL_ID = 'tusgu_practice_reminders';
 
 export const scheduleReminders = async (frequency: Frequency, count: number) => {
   try {
@@ -8,7 +11,23 @@ export const scheduleReminders = async (frequency: Frequency, count: number) => 
     const perm = await LocalNotifications.requestPermissions();
     if (perm.display !== 'granted') return false;
 
-    // 2. Clear existing notifications
+    // 2. Create Channel (Required for Android)
+    if (Capacitor.getPlatform() === 'android') {
+      try {
+        await LocalNotifications.createChannel({
+            id: CHANNEL_ID,
+            name: 'Practice Reminders',
+            description: 'Reminders to practice mental math',
+            importance: 3,
+            visibility: 1,
+            vibration: true,
+        });
+      } catch (e) {
+        console.warn('Channel creation failed', e);
+      }
+    }
+
+    // 3. Clear existing
     try {
       const pending = await LocalNotifications.getPending();
       if (pending.notifications.length > 0) {
@@ -21,8 +40,25 @@ export const scheduleReminders = async (frequency: Frequency, count: number) => 
     const notifications = [];
     const title = "Time to Practice!";
     const body = "Keep your mental math skills sharp. Do a quick 5-minute session now.";
+    
+    // Helper to add notification
+    const addNotif = (id: number, scheduleOn: any) => {
+        notifications.push({
+            id: id,
+            title,
+            body,
+            channelId: CHANNEL_ID, // Link to the Android channel
+            schedule: { 
+                on: scheduleOn,
+                allowWhileIdle: true // Helps with Android Doze mode
+            }
+        });
+    };
 
-    // 3. Scheduling Logic
+    // 4. Scheduling Logic
+    // Note: providing 'on' automatically implies repeating when those components match.
+    // Do not provide 'every' string when using 'on' to avoid Android conflicts.
+
     if (frequency === 'day') {
       const startHour = 9;
       const endHour = 20;
@@ -30,21 +66,14 @@ export const scheduleReminders = async (frequency: Frequency, count: number) => 
 
       for (let i = 0; i < count; i++) {
         const hour = count === 1 ? 17 : Math.round(startHour + (i * interval));
-        notifications.push({
-          id: i + 1,
-          title,
-          body,
-          schedule: { 
-            every: 'day', 
-            on: { hour: hour, minute: 0 } 
-          }
-        });
+        // Daily trigger at specific hour:minute
+        addNotif(i + 1, { hour: hour, minute: 0 });
       }
 
     } else if (frequency === 'week') {
       const days = [];
-      if (count === 1) days.push(4);
-      else if (count === 2) days.push(3, 7);
+      if (count === 1) days.push(4); // Wednesday
+      else if (count === 2) days.push(3, 7); // Tues, Sat
       else if (count === 3) days.push(2, 4, 6);
       else if (count >= 4) days.push(2, 3, 5, 6); 
       else days.push(2, 3, 4, 5, 6); 
@@ -52,15 +81,8 @@ export const scheduleReminders = async (frequency: Frequency, count: number) => 
       const actualDays = days.slice(0, count);
 
       actualDays.forEach((dayOfWeek, idx) => {
-        notifications.push({
-          id: idx + 1,
-          title,
-          body,
-          schedule: { 
-            every: 'week', 
-            on: { weekday: dayOfWeek, hour: 17, minute: 0 } 
-          }
-        });
+        // Weekly trigger: matches weekday + hour + minute
+        addNotif(idx + 1, { weekday: dayOfWeek, hour: 17, minute: 0 });
       });
 
     } else if (frequency === 'month') {
@@ -73,19 +95,12 @@ export const scheduleReminders = async (frequency: Frequency, count: number) => 
       const actualDates = dates.slice(0, count);
 
       actualDates.forEach((date, idx) => {
-         notifications.push({
-          id: idx + 1,
-          title,
-          body,
-          schedule: { 
-            every: 'month', 
-            on: { day: date, hour: 17, minute: 0 } 
-          }
-         });
+         // Monthly trigger: matches day + hour + minute
+         addNotif(idx + 1, { day: date, hour: 17, minute: 0 });
       });
     }
 
-    // 4. Schedule Batch
+    // 5. Schedule Batch
     if (notifications.length > 0) {
         // @ts-ignore
         await LocalNotifications.schedule({ notifications });
