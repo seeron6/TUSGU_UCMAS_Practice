@@ -65,7 +65,7 @@ export const ListeningPractice: React.FC = () => {
 
         // --- STRICT MAPPING STRATEGY ---
         const finalSlots: VoiceOption[] = [];
-        const preferredOrder = ['Samantha', 'Daniel', 'Karen', 'Rishi', 'Tessa', 'Google', 'Siri', 'Ava', 'Evan'];
+        const preferredOrder = ['Samantha', 'Daniel', 'Karen', 'Tessa', 'Google', 'Siri', 'Ava', 'Evan'];
         const usedIndices = new Set<number>();
 
         // We want exactly 8 options labeled Instructor 1 - Instructor 8
@@ -74,14 +74,45 @@ export const ListeningPractice: React.FC = () => {
            let pitch = 1.0;
            let lang = 'en-US';
 
-           // 1. Try to find a preferred voice
-           const prefName = preferredOrder[i - 1];
-           if (prefName) {
-             const v = englishVoices.find(ev => ev.name.includes(prefName) && !usedIndices.has(ev.originalIndex));
-             if (v) {
-               foundIndex = v.originalIndex;
-               lang = v.lang;
-               usedIndices.add(v.originalIndex);
+           // --- Instructor 2 & 3: Indian English Priority ---
+           if (i === 2 || i === 3) {
+              const indianVoices = englishVoices.filter(v => 
+                 v.lang.replace('_', '-').toLowerCase().includes('en-in')
+              );
+              
+              if (indianVoices.length > 0) {
+                 let targetVoice;
+                 if (i === 2) {
+                    // Try to find a voice that ISN'T "Rishi" (Male on iOS) to get a Female/Other one first
+                    targetVoice = indianVoices.find(v => !usedIndices.has(v.originalIndex) && !v.name.includes('Rishi'));
+                    if (!targetVoice) targetVoice = indianVoices.find(v => !usedIndices.has(v.originalIndex));
+                 } else {
+                    // Try to find "Rishi" (Male) or just the next available one
+                    targetVoice = indianVoices.find(v => !usedIndices.has(v.originalIndex) && v.name.includes('Rishi'));
+                    if (!targetVoice) targetVoice = indianVoices.find(v => !usedIndices.has(v.originalIndex));
+                 }
+
+                 if (targetVoice) {
+                    foundIndex = targetVoice.originalIndex;
+                    lang = targetVoice.lang;
+                    usedIndices.add(foundIndex);
+                 }
+              }
+           }
+
+           // --- General Logic (if not set by specific Indian logic above) ---
+           if (foundIndex === -1) {
+             // 1. Try to find a preferred voice from list (mapped by index offset)
+             // We adjust index for preferredOrder because we handle Inst 2/3 separately usually, 
+             // but let's just loop through preference list
+             const prefName = preferredOrder[i - 1];
+             if (prefName) {
+               const v = englishVoices.find(ev => ev.name.includes(prefName) && !usedIndices.has(ev.originalIndex));
+               if (v) {
+                 foundIndex = v.originalIndex;
+                 lang = v.lang;
+                 usedIndices.add(v.originalIndex);
+               }
              }
            }
 
@@ -104,7 +135,7 @@ export const ListeningPractice: React.FC = () => {
              }
            }
 
-           // STRICT NAME GENERATION
+           // GENERATE SLOT
            finalSlots.push({
              name: `Instructor ${i}`, 
              voiceIndex: foundIndex,
@@ -217,8 +248,14 @@ export const ListeningPractice: React.FC = () => {
       
       if (i > 0) {
         const prevItem = sequence[i - 1];
-        // Speak operators FAST. Minimum 2.2 rate to ensure no lag.
-        const opSpeed = Math.max(2.2, effectiveRate * 1.2);
+        
+        // Calculate Operator Speed
+        let opSpeed = effectiveRate * 1.2;
+        // For higher levels (5 and 6, where speed >= 1.8), we ensure operators are VERY fast 
+        // to maintain flow. For levels 1-4, we scale it gently so it's not jarringly fast.
+        if (uiSpeed >= 1.8) {
+           opSpeed = Math.max(2.2, effectiveRate * 1.25);
+        }
         
         if (item.operation === '-') await speak("Minus", opSpeed);
         else if (item.operation === '+' && prevItem.operation === '-') await speak("Plus", opSpeed);

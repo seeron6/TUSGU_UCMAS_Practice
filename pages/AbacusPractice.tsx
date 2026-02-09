@@ -43,6 +43,13 @@ const FORMULAS = {
       { id: 'b10', name: '-1', formula: '-10 +9', type: 'sub' },
       { id: 'b11', name: '-2', formula: '-10 +8', type: 'sub' },
       { id: 'b12', name: '-3', formula: '-10 +7', type: 'sub' },
+      { id: 'b13', name: '-4', formula: '-10 +6', type: 'sub' },
+      { id: 'b14', name: '-5', formula: '-10 +5', type: 'sub' },
+      { id: 'b15', name: '-6', formula: '-10 +4', type: 'sub' },
+      { id: 'b16', name: '-7', formula: '-10 +3', type: 'sub' },
+      { id: 'b17', name: '-8', formula: '-10 +2', type: 'sub' },
+      { id: 'b18', name: '-9', formula: '-10 +1', type: 'sub' },
+
     ]
   },
   mixed: {
@@ -433,30 +440,30 @@ export const AbacusPractice: React.FC = () => {
       
       {/* Main Menu */}
       {view === 'menu' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 p-4 pt-10 h-full content-start md:content-center max-w-7xl mx-auto w-full">
+        <div className="flex flex-col md:grid md:grid-cols-2 gap-4 md:gap-10 h-full pb-2 md:pb-0 max-w-7xl mx-auto w-full">
            <button 
              onClick={() => setView('formulas')}
-             className="bg-white dark:bg-slate-800 p-10 md:p-14 rounded-[3rem] shadow-soft border border-slate-100 dark:border-slate-700 flex flex-col items-center gap-8 group active:scale-95 transition-all"
+             className="flex-1 bg-white dark:bg-slate-800 p-6 md:p-14 rounded-[2rem] md:rounded-[3rem] shadow-soft border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center gap-4 md:gap-8 group active:scale-95 transition-all"
            >
-             <div className="w-24 h-24 md:w-36 md:h-36 bg-emerald-50 text-emerald-600 rounded-[2rem] flex items-center justify-center shadow-inner">
-               <BookOpen className="w-12 h-12 md:w-20 md:h-20" />
+             <div className="w-20 h-20 md:w-36 md:h-36 bg-emerald-50 text-emerald-600 rounded-2xl md:rounded-[2rem] flex items-center justify-center shadow-inner">
+               <BookOpen className="w-10 h-10 md:w-20 md:h-20" />
              </div>
              <div className="text-center">
-               <h3 className="text-2xl md:text-4xl font-bold text-slate-800 dark:text-white">Formulas</h3>
-               <p className="text-slate-500 text-base md:text-xl mt-2">Reference sheet for Friends</p>
+               <h3 className="text-xl md:text-4xl font-bold text-slate-800 dark:text-white">Formulas</h3>
+               <p className="text-slate-500 text-sm md:text-xl mt-1 md:mt-2">Reference sheet for Friends</p>
              </div>
            </button>
 
            <button 
              onClick={() => setView('routine_menu')}
-             className="bg-white dark:bg-slate-800 p-10 md:p-14 rounded-[3rem] shadow-soft border border-slate-100 dark:border-slate-700 flex flex-col items-center gap-8 group active:scale-95 transition-all"
+             className="flex-1 bg-white dark:bg-slate-800 p-6 md:p-14 rounded-[2rem] md:rounded-[3rem] shadow-soft border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center gap-4 md:gap-8 group active:scale-95 transition-all"
            >
-             <div className="w-24 h-24 md:w-36 md:h-36 bg-blue-50 text-tusgu-blue rounded-[2rem] flex items-center justify-center shadow-inner">
-               <Clock className="w-12 h-12 md:w-20 md:h-20" />
+             <div className="w-20 h-20 md:w-36 md:h-36 bg-blue-50 text-tusgu-blue rounded-2xl md:rounded-[2rem] flex items-center justify-center shadow-inner">
+               <Clock className="w-10 h-10 md:w-20 md:h-20" />
              </div>
              <div className="text-center">
-               <h3 className="text-2xl md:text-4xl font-bold text-slate-800 dark:text-white">Practice Routine</h3>
-               <p className="text-slate-500 text-base md:text-xl mt-2">Drills & Exercises</p>
+               <h3 className="text-xl md:text-4xl font-bold text-slate-800 dark:text-white">Practice Routine</h3>
+               <p className="text-slate-500 text-sm md:text-xl mt-1 md:mt-2">Drills & Exercises</p>
              </div>
            </button>
         </div>
@@ -467,34 +474,34 @@ export const AbacusPractice: React.FC = () => {
 
       {/* Routine Menu */}
       {view === 'routine_menu' && (
-        <div className="flex flex-col gap-6 p-4 pt-10 h-full max-w-7xl mx-auto w-full animate-in slide-in-from-right-8">
-           <h2 className="text-center text-xl md:text-3xl font-bold text-slate-800 dark:text-white mb-8">Select Routine</h2>
+        <div className="flex flex-col h-full gap-4 pb-2 max-w-7xl mx-auto w-full animate-in slide-in-from-right-8">
+           <h2 className="text-center text-lg md:text-3xl font-bold text-slate-800 dark:text-white shrink-0">Select Routine</h2>
            
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
+           <div className="flex-1 flex flex-col md:grid md:grid-cols-2 gap-4 md:gap-10">
              <button 
                onClick={() => setView('cumulative')}
-               className="bg-indigo-50 dark:bg-indigo-900/20 p-8 md:p-12 rounded-[2.5rem] text-left flex flex-col md:flex-row items-center justify-between group active:scale-95 transition-all gap-6"
+               className="flex-1 bg-indigo-50 dark:bg-indigo-900/20 p-6 md:p-12 rounded-[2rem] md:rounded-[2.5rem] text-left flex flex-col md:flex-row items-center justify-center md:justify-between group active:scale-95 transition-all gap-4 md:gap-6"
              >
                <div className="flex flex-col items-center md:items-start text-center md:text-left">
-                 <div className="flex items-center gap-4 mb-2">
+                 <div className="flex items-center gap-3 md:gap-4 mb-1 md:mb-2">
                     <Hash className="w-8 h-8 md:w-10 md:h-10 text-indigo-500" />
-                    <h3 className="text-xl md:text-3xl font-bold text-indigo-900 dark:text-indigo-200">Cumulative 1-100</h3>
+                    <h3 className="text-lg md:text-3xl font-bold text-indigo-900 dark:text-indigo-200">Cumulative 1-100</h3>
                  </div>
-                 <p className="text-indigo-600/70 text-base md:text-lg pl-0 md:pl-14">Add 1 to 100 with checkpoints</p>
+                 <p className="text-indigo-600/70 text-sm md:text-lg pl-0 md:pl-14">Add 1 to 100 with checkpoints</p>
                </div>
                <ChevronRight className="text-indigo-400 hidden md:block w-8 h-8 md:w-10 md:h-10" />
              </button>
 
              <button 
                onClick={() => setView('timed_setup')}
-               className="bg-orange-50 dark:bg-orange-900/20 p-8 md:p-12 rounded-[2.5rem] text-left flex flex-col md:flex-row items-center justify-between group active:scale-95 transition-all gap-6"
+               className="flex-1 bg-orange-50 dark:bg-orange-900/20 p-6 md:p-12 rounded-[2rem] md:rounded-[2.5rem] text-left flex flex-col md:flex-row items-center justify-center md:justify-between group active:scale-95 transition-all gap-4 md:gap-6"
              >
                <div className="flex flex-col items-center md:items-start text-center md:text-left">
-                  <div className="flex items-center gap-4 mb-2">
+                  <div className="flex items-center gap-3 md:gap-4 mb-1 md:mb-2">
                     <Clock className="w-8 h-8 md:w-10 md:h-10 text-orange-500" />
-                    <h3 className="text-xl md:text-3xl font-bold text-orange-900 dark:text-orange-200">Timed Drills</h3>
+                    <h3 className="text-lg md:text-3xl font-bold text-orange-900 dark:text-orange-200">Timed Drills</h3>
                  </div>
-                 <p className="text-orange-600/70 text-base md:text-lg pl-0 md:pl-14">60s Rapid Addition/Subtraction</p>
+                 <p className="text-orange-600/70 text-sm md:text-lg pl-0 md:pl-14">60s Rapid Addition/Subtraction</p>
                </div>
                <ChevronRight className="text-orange-400 hidden md:block w-8 h-8 md:w-10 md:h-10" />
              </button>
