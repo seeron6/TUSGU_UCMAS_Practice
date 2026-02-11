@@ -1,16 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Layout } from '../components/Layout';
-import { ChevronRight, BookOpen, Clock, Play, RotateCcw, Check, Trophy, X, Hash } from 'lucide-react';
+import { ChevronRight, BookOpen, Clock, Play, RotateCcw, Check, Trophy, X, Hash, ArrowLeft } from 'lucide-react';
 import { NumberPad } from '../components/NumberPad';
 import { Haptics, NotificationType } from '@capacitor/haptics';
 import { KeepAwake } from '@capacitor-community/keep-awake';
 
 // --- Types & Constants ---
 
-type ViewMode = 'menu' | 'formulas' | 'routine_menu' | 'cumulative' | 'timed_setup' | 'timed_play';
+type ViewMode = 'menu' | 'formulas' | 'routine_menu' | 'cumulative' | 'timed_setup' | 'timed_play' | 'formula_drill';
 type FormulaCategory = 'small' | 'big' | 'mixed';
 
-const FORMULAS = {
+interface FormulaItem {
+  id: string;
+  name: string;
+  formula: string;
+  type: 'add' | 'sub';
+}
+
+const FORMULAS: Record<FormulaCategory, { title: string; subtitle: string; style: string; items: FormulaItem[] }> = {
   small: {
     title: 'Small Friends',
     subtitle: 'Target is 5',
@@ -49,7 +56,6 @@ const FORMULAS = {
       { id: 'b16', name: '-7', formula: '-10 +3', type: 'sub' },
       { id: 'b17', name: '-8', formula: '-10 +2', type: 'sub' },
       { id: 'b18', name: '-9', formula: '-10 +1', type: 'sub' },
-
     ]
   },
   mixed: {
@@ -71,7 +77,7 @@ const FORMULAS = {
 
 // --- Sub-Components ---
 
-const FormulasView: React.FC = () => {
+const FormulasView: React.FC<{ onSelect: (item: FormulaItem) => void }> = ({ onSelect }) => {
   const [activeTab, setActiveTab] = useState<FormulaCategory>('small');
   const currentData = FORMULAS[activeTab];
 
@@ -103,20 +109,144 @@ const FormulasView: React.FC = () => {
            <span className={`inline-block px-4 py-1.5 mt-2 rounded-full text-xs md:text-sm font-bold uppercase ${currentData.style}`}>
              {currentData.subtitle}
            </span>
+           <p className="text-slate-400 text-xs mt-2">Tap any formula to practice it</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-1">
            {currentData.items.map((item) => (
-             <div key={item.id} className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex items-center justify-between">
+             <button 
+                key={item.id} 
+                onClick={() => onSelect(item)}
+                className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex items-center justify-between active:scale-[0.98] active:bg-slate-50 dark:active:bg-slate-700 transition-all text-left"
+             >
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-xl ${item.type === 'add' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
                   {item.name}
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-900 px-5 py-3 rounded-xl font-mono text-xl font-bold text-slate-700 dark:text-slate-200">
                   {item.formula}
                 </div>
-             </div>
+             </button>
            ))}
         </div>
       </div>
+    </div>
+  );
+};
+
+const FormulaDrill: React.FC<{ item: FormulaItem, onExit: () => void }> = ({ item, onExit }) => {
+  const [timeLeft, setTimeLeft] = useState(60);
+  const [startNumber, setStartNumber] = useState(0);
+  const [targetNumber, setTargetNumber] = useState(0); // The number to add/sub repeatedly
+  const [userInput, setUserInput] = useState('');
+  const [status, setStatus] = useState<'running' | 'input' | 'result'>('running');
+
+  useEffect(() => {
+    // 1. Determine the increment/decrement value
+    // Extract number from name e.g. "+4" -> 4, "-9" -> 9
+    const val = parseInt(item.name.replace(/[^\d]/g, ''));
+    setTargetNumber(val);
+
+    // 2. Set Start Number
+    // Add: Start at 0
+    // Sub: Start high enough to allow 1 min of subtraction (approx 2 per sec = 120 ops)
+    let start = 0;
+    if (item.type === 'sub') {
+      start = val * 120; // Safe buffer
+    }
+    setStartNumber(start);
+
+    // 3. Timer
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setStatus('input');
+          Haptics.notification({ type: NotificationType.Warning });
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    KeepAwake.keepAwake();
+
+    return () => {
+      clearInterval(timer);
+      KeepAwake.allowSleep();
+    }
+  }, [item]);
+
+  const checkResult = () => {
+    const endVal = parseInt(userInput);
+    
+    const diff = Math.abs(endVal - startNumber);
+    const isDirectionCorrect = item.type === 'add' ? endVal > startNumber : endVal < startNumber;
+    
+    // It's correct if the difference is perfectly divisible by the target number
+    const isDivisible = diff % targetNumber === 0;
+
+    if (isDirectionCorrect && isDivisible) {
+      setStatus('result');
+      Haptics.notification({ type: NotificationType.Success });
+    } else {
+      alert(`That number doesn't fit the sequence for ${item.name}! Try again.`);
+    }
+  };
+
+  if (status === 'running') {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center px-4">
+        <div className="text-9xl md:text-[10rem] font-black text-slate-200 dark:text-slate-800 mb-8 tabular-nums">{timeLeft}</div>
+        
+        <div className="bg-white dark:bg-slate-800 p-8 md:p-12 rounded-[3rem] shadow-soft border border-slate-100 dark:border-slate-700 w-full max-w-2xl">
+           <div className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Formula Drill</div>
+           <p className="text-4xl text-slate-600 dark:text-slate-300">
+             Start at <span className="font-bold text-slate-800 dark:text-white">{startNumber}</span>
+           </p>
+           <div className="my-8 h-px bg-slate-100 dark:bg-slate-700 w-full"></div>
+           <p className="text-3xl md:text-4xl text-slate-600 dark:text-slate-300 flex items-center justify-center gap-3 flex-wrap">
+              {item.type === 'add' ? 'Add' : 'Subtract'} 
+              <span className={`text-6xl font-black ${item.type === 'add' ? 'text-emerald-600' : 'text-rose-600'}`}>{targetNumber}</span>
+              repeatedly
+           </p>
+           <div className="mt-4 inline-block bg-slate-100 dark:bg-slate-700 px-4 py-2 rounded-xl text-slate-500 dark:text-slate-300 font-mono font-bold">
+             Use: {item.formula}
+           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'input') {
+    return (
+      <div className="flex flex-col h-full max-w-2xl mx-auto relative overflow-hidden w-full">
+        <div className="flex-1 flex flex-col items-center justify-center min-h-0">
+           <div className="text-red-500 font-bold text-3xl mb-6 animate-pulse">Time's Up!</div>
+           <h3 className="text-slate-500 text-xl">Enter your final number</h3>
+           <div className="text-7xl md:text-8xl font-mono font-bold mt-8 text-slate-800 dark:text-white min-h-[6rem]">
+             {userInput}
+           </div>
+        </div>
+        <div className="flex-shrink-0 pb-1 w-full max-w-lg mx-auto">
+           <NumberPad value={userInput} onChange={setUserInput} onSubmit={checkResult} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full text-center p-6 animate-in zoom-in-95">
+       <div className="w-28 h-28 bg-green-100 rounded-full flex items-center justify-center mb-8">
+          <Check className="w-14 h-14 text-green-600" />
+       </div>
+       <h2 className="text-4xl font-bold text-slate-800 dark:text-white mb-3">Well Done!</h2>
+       <p className="text-slate-600 mb-10 text-xl">
+         You mastered the <b>{item.formula}</b> formula.<br/>
+         <span className="text-6xl font-bold text-tusgu-blue block mt-6">
+           {Math.abs(parseInt(userInput) - startNumber) / targetNumber}
+         </span>
+         <span className="text-base text-slate-400 mt-2 block font-bold uppercase tracking-wider">Repetitions</span>
+       </p>
+       <button onClick={onExit} className="w-full max-w-md py-5 bg-slate-800 text-white rounded-2xl font-bold text-xl">Back to Formulas</button>
     </div>
   );
 };
@@ -404,9 +534,16 @@ const TimedGame: React.FC<{ mode: 'setup' | 'play', onStart: (op: '+'|'-', digit
 export const AbacusPractice: React.FC = () => {
   const [view, setView] = useState<ViewMode>('menu');
   const [timedSetup, setTimedSetup] = useState<{op: '+'|'-', digits: number}>({op: '+', digits: 1});
+  const [selectedFormula, setSelectedFormula] = useState<FormulaItem | null>(null);
 
   const handleBack = () => {
     if (view === 'menu') return; 
+    
+    if (view === 'formula_drill') {
+        setView('formulas');
+        return;
+    }
+
     if (view === 'timed_play' || view === 'timed_setup' || view === 'cumulative') {
       setView('routine_menu');
     } else {
@@ -421,6 +558,7 @@ export const AbacusPractice: React.FC = () => {
           case 'cumulative': return 'Cumulative 1-100';
           case 'timed_setup': return 'Timed Drill'; // Shortened for header
           case 'timed_play': return 'Timed Drill';
+          case 'formula_drill': return 'Formula Drill';
           default: return undefined; // Let Layout use default Title or empty
       }
   };
@@ -470,7 +608,16 @@ export const AbacusPractice: React.FC = () => {
       )}
 
       {/* Formulas */}
-      {view === 'formulas' && <FormulasView />}
+      {view === 'formulas' && (
+          <FormulasView onSelect={(item) => {
+              setSelectedFormula(item);
+              setView('formula_drill');
+          }} />
+      )}
+
+      {view === 'formula_drill' && selectedFormula && (
+          <FormulaDrill item={selectedFormula} onExit={() => setView('formulas')} />
+      )}
 
       {/* Routine Menu */}
       {view === 'routine_menu' && (

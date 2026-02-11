@@ -13,6 +13,7 @@ interface VoiceOption {
   name: string;
   voiceIndex: number;
   pitch: number;
+  rateMod: number; // Multiplier for speed (0.9 = slower, 1.1 = faster)
   lang: string;
 }
 
@@ -63,96 +64,125 @@ export const ListeningPractice: React.FC = () => {
         const englishVoices = allVoices.map((v, i) => ({ ...v, originalIndex: i }))
                                        .filter(v => v.lang && v.lang.toLowerCase().includes('en'));
 
-        // --- STRICT MAPPING STRATEGY ---
-        const finalSlots: VoiceOption[] = [];
-        const preferredOrder = ['Samantha', 'Daniel', 'Karen', 'Tessa', 'Google', 'Siri', 'Ava', 'Evan'];
+        // --- Classification Helpers ---
+        const isLang = (v: any, code: string) => (v.lang || '').toLowerCase().replace('_', '-').includes(code.toLowerCase());
+        const isName = (v: any, name: string) => (v.name || '').toLowerCase().includes(name.toLowerCase());
+        
+        const isFemale = (v: any) => isName(v, 'female') || isName(v, 'samantha') || isName(v, 'karen') || isName(v, 'tessa') || isName(v, 'zara') || isName(v, 'moira') || isName(v, 'veena') || isName(v, 'lekha') || isName(v, 'sangeeta');
+        const isMale = (v: any) => isName(v, 'male') || isName(v, 'daniel') || isName(v, 'rishi') || isName(v, 'fred') || isName(v, 'alex') || isName(v, 'aaron') || isName(v, 'arthur');
+
+        // Augment voices with metadata
+        const classified = englishVoices.map(v => {
+            let region = 'OTHER';
+            if (isLang(v, 'en-US')) region = 'US';
+            else if (isLang(v, 'en-GB')) region = 'UK';
+            else if (isLang(v, 'en-IN')) region = 'IN';
+            else if (isLang(v, 'en-AU')) region = 'AU';
+            else if (isLang(v, 'en-IE')) region = 'IE'; // Ireland
+            else if (isLang(v, 'en-ZA')) region = 'ZA'; // South Africa
+
+            let gender: 'F' | 'M' | 'N' = 'N';
+            if (isFemale(v)) gender = 'F';
+            else if (isMale(v)) gender = 'M';
+            
+            return { ...v, region, gender };
+        });
+
         const usedIndices = new Set<number>();
 
-        // We want exactly 8 options labeled Instructor 1 - Instructor 8
-        for (let i = 1; i <= 8; i++) {
-           let foundIndex = -1;
-           let pitch = 1.0;
-           let lang = 'en-US';
+        // --- CORE SELECTION LOGIC ---
+        // 1. Attempts to find a UNIQUE voice matching regions/gender.
+        // 2. If not found, it picks a FALLBACK voice (prioritizing the requested region)
+        // 3. Applies the provided 'profile' (pitch/rate) ONLY if it's a reuse or explicit fallback.
+        const assignVoice = (
+            slotName: string,
+            regions: string[], 
+            gender: 'F' | 'M', 
+            fallbackProfile: { pitch: number, rate: number }
+        ): VoiceOption => {
+            
+            // A. Try to find an UNUSED exact match
+            for (const r of regions) {
+                const match = classified.find(v => v.region === r && v.gender === gender && !usedIndices.has(v.originalIndex));
+                if (match) {
+                    usedIndices.add(match.originalIndex);
+                    // Found a perfect natural match: Use natural pitch/rate
+                    return { name: slotName, voiceIndex: match.originalIndex, pitch: 1.0, rateMod: 1.0, lang: match.lang };
+                }
+            }
 
-           // --- Instructor 2 & 3: Indian English Priority ---
-           if (i === 2 || i === 3) {
-              const indianVoices = englishVoices.filter(v => 
-                 v.lang.replace('_', '-').toLowerCase().includes('en-in')
-              );
-              
-              if (indianVoices.length > 0) {
-                 let targetVoice;
-                 if (i === 2) {
-                    // Try to find a voice that ISN'T "Rishi" (Male on iOS) to get a Female/Other one first
-                    targetVoice = indianVoices.find(v => !usedIndices.has(v.originalIndex) && !v.name.includes('Rishi'));
-                    if (!targetVoice) targetVoice = indianVoices.find(v => !usedIndices.has(v.originalIndex));
-                 } else {
-                    // Try to find "Rishi" (Male) or just the next available one
-                    targetVoice = indianVoices.find(v => !usedIndices.has(v.originalIndex) && v.name.includes('Rishi'));
-                    if (!targetVoice) targetVoice = indianVoices.find(v => !usedIndices.has(v.originalIndex));
-                 }
+            // B. Try to find ANY UNUSED match in regions (Gender mismatch allowed)
+            for (const r of regions) {
+                const match = classified.find(v => v.region === r && !usedIndices.has(v.originalIndex));
+                if (match) {
+                    usedIndices.add(match.originalIndex);
+                    // Reuse found but apply slight modulation if gender didn't match perfectly, 
+                    // or just use natural if it's "close enough"
+                    // To be safe, if we are here, we might want to nudge pitch if gender was crucial
+                    const p = gender === 'F' && match.gender !== 'F' ? 1.15 : (gender === 'M' && match.gender !== 'M' ? 0.9 : 1.0);
+                    return { name: slotName, voiceIndex: match.originalIndex, pitch: p, rateMod: 1.0, lang: match.lang };
+                }
+            }
 
-                 if (targetVoice) {
-                    foundIndex = targetVoice.originalIndex;
-                    lang = targetVoice.lang;
-                    usedIndices.add(foundIndex);
-                 }
-              }
-           }
+            // C. FORCED REUSE (All unique voices exhausted)
+            // We must reuse a voice. We prefer reusing one from the target region.
+            let fallbackVoice = classified.find(v => regions.includes(v.region));
+            // If no target region voice, try UK (neutral) then US
+            if (!fallbackVoice) fallbackVoice = classified.find(v => v.region === 'UK');
+            if (!fallbackVoice) fallbackVoice = classified.find(v => v.region === 'US');
+            // If still nothing, take anything
+            if (!fallbackVoice && classified.length > 0) fallbackVoice = classified[0];
 
-           // --- General Logic (if not set by specific Indian logic above) ---
-           if (foundIndex === -1) {
-             // 1. Try to find a preferred voice from list (mapped by index offset)
-             // We adjust index for preferredOrder because we handle Inst 2/3 separately usually, 
-             // but let's just loop through preference list
-             const prefName = preferredOrder[i - 1];
-             if (prefName) {
-               const v = englishVoices.find(ev => ev.name.includes(prefName) && !usedIndices.has(ev.originalIndex));
-               if (v) {
-                 foundIndex = v.originalIndex;
-                 lang = v.lang;
-                 usedIndices.add(v.originalIndex);
-               }
-             }
-           }
+            if (fallbackVoice) {
+                // WE ARE REUSING. WE MUST APPLY THE PROFILE TO MAKE IT DISTINCT.
+                return { 
+                    name: slotName, 
+                    voiceIndex: fallbackVoice.originalIndex, 
+                    pitch: fallbackProfile.pitch, 
+                    rateMod: fallbackProfile.rate, 
+                    lang: fallbackVoice.lang 
+                };
+            }
 
-           // 2. If no preferred voice, pick next available
-           if (foundIndex === -1) {
-             const v = englishVoices.find(ev => !usedIndices.has(ev.originalIndex));
-             if (v) {
-               foundIndex = v.originalIndex;
-               lang = v.lang;
-               usedIndices.add(v.originalIndex);
-             }
-           }
+            return { name: slotName, voiceIndex: -1, pitch: 1.0, rateMod: 1.0, lang: 'en-US' };
+        };
 
-           // 3. Fallback: reuse first available with pitch shift
-           if (foundIndex === -1) {
-             if (englishVoices.length > 0) {
-                foundIndex = englishVoices[0].originalIndex;
-                lang = englishVoices[0].lang;
-                pitch = 0.8 + (i * 0.05); 
-             }
-           }
+        const slots: VoiceOption[] = [];
 
-           // GENERATE SLOT
-           finalSlots.push({
-             name: `Instructor ${i}`, 
-             voiceIndex: foundIndex,
-             pitch: pitch,
-             lang: lang
-           });
-        }
+        // --- DEFINING INSTRUCTORS ---
 
-        setVoiceOptions(finalSlots);
+        // Inst 1: US Female Standard
+        slots.push(assignVoice('Instructor 1', ['US'], 'F', { pitch: 1.0, rate: 1.0 }));
+
+        // Inst 2: IN Female (Profile: High Pitch 1.2 if reused)
+        slots.push(assignVoice('Instructor 2', ['IN', 'UK', 'AU'], 'F', { pitch: 1.2, rate: 1.05 }));
+
+        // Inst 3: IN Male (Profile: Low Pitch 0.9 if reused)
+        slots.push(assignVoice('Instructor 3', ['IN', 'UK', 'AU'], 'M', { pitch: 0.85, rate: 1.0 }));
+
+        // Inst 4: US Male Standard
+        slots.push(assignVoice('Instructor 4', ['US'], 'M', { pitch: 1.0, rate: 1.0 }));
+
+        // Inst 5: UK Female
+        slots.push(assignVoice('Instructor 5', ['UK'], 'F', { pitch: 1.1, rate: 1.0 }));
+
+        // Inst 6: UK Male
+        slots.push(assignVoice('Instructor 6', ['AU'], 'M', { pitch: 0.9, rate: 1.0 }));
+
+        // Inst 7: IN Female Alt (Profile: Very High Pitch 1.3 + Faster if reused)
+        // Note: We check 'IN' again to see if there is a 2nd Indian voice available.
+        slots.push(assignVoice('Instructor 7', ['IN', 'ZA', 'IE'], 'F', { pitch: 1.3, rate: 1.1 }));
+
+        // Inst 8: IN Male Alt (Profile: Deep Pitch 0.7 + Slower 0.9 if reused)
+        // This ensures Inst 8 is very distinct from Inst 3 even if they share the voice.
+        slots.push(assignVoice('Instructor 8', ['ZA', 'IE'], 'M', { pitch: 0.7, rate: 0.9 }));
+
+        setVoiceOptions(slots);
 
       } catch (e) {
-        // Fallback if plugin fails completely
+        // Plugin failure fallback
         const fallbackSlots = Array.from({length: 8}, (_, i) => ({
-           name: `Instructor ${i + 1}`,
-           voiceIndex: -1, 
-           pitch: 1.0,
-           lang: 'en-US'
+           name: `Instructor ${i + 1}`, voiceIndex: -1, pitch: 1.0, rateMod: 1.0, lang: 'en-US'
         }));
         setVoiceOptions(fallbackSlots);
       }
@@ -189,32 +219,23 @@ export const ListeningPractice: React.FC = () => {
     const uiSpeed = newConfig.listeningSpeed || 1.0;
     
     // --- TIMING LOGIC ---
-    // gapMs: Explicit delay in loop.
-    // effectiveRate: The actual rate sent to TTS engine.
-    
     let gapMs = 1200;
     let effectiveRate = uiSpeed;
 
     if (uiSpeed >= 2.0) {
-        // Level 6: Boost rate to 2.5 to cut intrinsic latency, 0 gap
         gapMs = 0;
         effectiveRate = 2.5; 
     } else if (uiSpeed >= 1.8) {
-        // Level 5: 0 gap (rely on system latency ~50ms)
         gapMs = 0;
     } else if (uiSpeed >= 1.6) {
-        // Level 4
         gapMs = 300;
     } else if (uiSpeed >= 1.4) {
-        // Level 3
         gapMs = 600;
     } else if (uiSpeed >= 1.2) {
-        // Level 2
         gapMs = 900;
     }
     
-    // Slight buffer for multi-digit numbers to process mentally, 
-    // but drastically reduced for high levels
+    // Slight buffer for multi-digit numbers to process mentally
     if (newConfig.digits > 2 && uiSpeed < 1.8) gapMs += 300;
     
     await new Promise(resolve => setTimeout(resolve, 500));
@@ -222,22 +243,26 @@ export const ListeningPractice: React.FC = () => {
     const selectedOption = voiceOptions[newConfig.voiceIndex || 0];
     const voiceIdx = selectedOption ? selectedOption.voiceIndex : -1;
     const basePitch = selectedOption ? selectedOption.pitch : 1.0;
+    const baseRateMod = selectedOption ? (selectedOption.rateMod || 1.0) : 1.0;
     const selectedLang = selectedOption ? selectedOption.lang : 'en-US';
 
     const speak = async (text: string, speedOverride?: number) => {
       if (stopRef.current) return;
+      
+      // Apply the instructor's specific rate modifier to the base speed
+      const finalRate = (speedOverride || effectiveRate) * baseRateMod;
+
       try {
         await TextToSpeech.speak({
           text: text,
           lang: selectedLang,
-          rate: speedOverride || effectiveRate,
+          rate: finalRate,
           pitch: basePitch, 
           voice: voiceIdx >= 0 ? voiceIdx : undefined,
           volume: 1.0,
           category: 'ambient',
         });
       } catch (e) {
-        // Fallback delay if TTS fails
         await new Promise(resolve => setTimeout(resolve, 300));
       }
     };
@@ -249,24 +274,27 @@ export const ListeningPractice: React.FC = () => {
       if (i > 0) {
         const prevItem = sequence[i - 1];
         
-        // Calculate Operator Speed
-        let opSpeed = effectiveRate * 1.2;
-        // For higher levels (5 and 6, where speed >= 1.8), we ensure operators are VERY fast 
-        // to maintain flow. For levels 1-4, we scale it gently so it's not jarringly fast.
+        // --- OPERATOR SPEED LOGIC ---
+        // Default: Same as reading speed (good for Level 1-4)
+        let opSpeed = effectiveRate; 
+        
+        // High Levels (5-6): Speed it up significantly to reduce lag
         if (uiSpeed >= 1.8) {
            opSpeed = Math.max(2.2, effectiveRate * 1.25);
+        } 
+        // Mid Levels (3-4): Slight boost
+        else if (uiSpeed >= 1.4) {
+           opSpeed = effectiveRate * 1.1; 
         }
         
         if (item.operation === '-') await speak("Minus", opSpeed);
         else if (item.operation === '+' && prevItem.operation === '-') await speak("Plus", opSpeed);
-        // Absolutely no delay loop after operators
       }
       
       if (stopRef.current) break;
       await speak(item.value.toString());
       if (stopRef.current) break;
       
-      // Only wait if there is an explicit gap needed
       if (gapMs > 0) {
         await new Promise(resolve => setTimeout(resolve, gapMs));
       }
