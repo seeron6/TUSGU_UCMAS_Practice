@@ -59,7 +59,7 @@ const FORMULAS: Record<FormulaCategory, { title: string; subtitle: string; style
     ]
   },
   mixed: {
-    title: 'Combination',
+    title: 'Mixed Friends',
     subtitle: 'Big + Small',
     style: 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-300',
     items: [
