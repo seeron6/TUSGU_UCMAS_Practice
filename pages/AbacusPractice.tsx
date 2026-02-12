@@ -209,7 +209,7 @@ const FormulaDrill: React.FC<{ item: FormulaItem, onExit: () => void }> = ({ ite
               repeatedly
            </p>
            <div className="mt-4 inline-block bg-slate-100 dark:bg-slate-700 px-4 py-2 rounded-xl text-slate-500 dark:text-slate-300 font-mono font-bold">
-             Use: {item.formula}
+             Use the formulas.
            </div>
         </div>
       </div>

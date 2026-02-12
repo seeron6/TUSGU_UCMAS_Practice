@@ -50,68 +50,62 @@ export const ListeningPractice: React.FC = () => {
     let isMounted = true;
     
     const initVoices = async () => {
-      await new Promise(r => setTimeout(r, 600)); // Delay for plugin
+      await new Promise(r => setTimeout(r, 800)); 
       try {
         const result = await TextToSpeech.getSupportedVoices();
         if (!isMounted) return;
 
         const allVoices = result.voices;
-        const usedIndices = new Set<number>();
+        const usedNames = new Set<string>();
 
-        // Logic to find a distinct voice based on locale, gender, and specific names
-        const findVoice = (locales: string[], gender: 'male' | 'female', preferred: string[]) => {
-            // 1. Match by preferred high-quality names (iOS/Android specific)
+        // We define specific "Personas" for the 8 slots
+        const slots = [
+            { label: 'Instructor 1', loc: 'en-US', pref: ['Samantha', 'Siri'], pitch: 1.1, rate: 1.0 }, 
+            { label: 'Instructor 2', loc: 'en-GB', pref: ['Victoria', 'Serena'], pitch: 1.05, rate: 1.0 }, 
+            { label: 'Instructor 3', loc: 'en-AU', pref: ['Catherine', 'Karen'], pitch: 1.0, rate: 1.0 }, 
+            { label: 'Instructor 4', loc: 'en-US', pref: ['Alex', 'Evan'], pitch: 0.8, rate: 0.95 }, 
+            { label: 'Instructor 5', loc: 'en-GB', pref: ['Daniel', 'Oliver'], pitch: 0.85, rate: 1.0 }, 
+            // Regional Slots with forced distinct characteristics
+            { label: 'Instructor 6', loc: 'en-IN', pref: ['Isha', 'Veena'], pitch: 1.2, rate: 1.05 },   // High pitched female
+            { label: 'Instructor 7', loc: 'en-SG', pref: ['Clara', 'Singapore'], pitch: 1.0, rate: 1.0 }, // Standard Singapore
+            { label: 'Instructor 8', loc: 'en-IN', pref: ['Rishi', 'Ravi'], pitch: 0.75, rate: 0.9 },   // Low pitched male
+        ];
+
+        const finalOptions: VoiceOption[] = slots.map(slot => {
+            // Priority 1: Exact Name Match
             let match = allVoices.find(v => 
-                locales.some(l => v.lang.toLowerCase().includes(l.toLowerCase())) &&
-                preferred.some(p => v.name.toLowerCase().includes(p.toLowerCase())) &&
-                !usedIndices.has(allVoices.indexOf(v))
+                v.lang.toLowerCase().includes(slot.loc.toLowerCase()) &&
+                slot.pref.some(p => v.name.toLowerCase().includes(p.toLowerCase())) &&
+                !usedNames.has(v.name)
             );
 
-            // 2. Match by any voice in that locale with that gender keyword
+            // Priority 2: Any unused voice in that dialect
             if (!match) {
                 match = allVoices.find(v => 
-                    locales.some(l => v.lang.toLowerCase().includes(l.toLowerCase())) &&
-                    v.name.toLowerCase().includes(gender) &&
-                    !usedIndices.has(allVoices.indexOf(v))
-                );
-            }
-
-            // 3. Just grab any remaining voice in that locale
-            if (!match) {
-                match = allVoices.find(v => 
-                    locales.some(l => v.lang.toLowerCase().includes(l.toLowerCase())) &&
-                    !usedIndices.has(allVoices.indexOf(v))
+                    v.lang.toLowerCase().includes(slot.loc.toLowerCase()) &&
+                    !usedNames.has(v.name)
                 );
             }
 
             if (match) {
-                const idx = allVoices.indexOf(match);
-                usedIndices.add(idx);
-                return { idx, lang: match.lang };
+                usedNames.add(match.name);
+                console.log(`Assigned ${match.name} to ${slot.label}`);
+                return {
+                    name: slot.label,
+                    voiceIndex: allVoices.indexOf(match),
+                    pitch: slot.pitch,
+                    rateMod: slot.rate,
+                    lang: match.lang
+                };
             }
-            return null;
-        };
 
-        // Slots for your 8 required voices
-        const slots: { label: string, loc: string[], gen: 'male' | 'female', pref: string[] }[] = [
-            { label: 'Instructor Samantha', loc: ['en-US', 'en-GB'], gen: 'female', pref: ['Samantha', 'Karen'] },
-            { label: 'Instructor Victoria', loc: ['en-US', 'en-GB'], gen: 'female', pref: ['Victoria', 'Moira', 'Tessa'] },
-            { label: 'Instructor Daniel',   loc: ['en-US', 'en-GB'], gen: 'male',   pref: ['Daniel', 'Alex'] },
-            { label: 'Instructor Arthur',   loc: ['en-US', 'en-GB'], gen: 'male',   pref: ['Arthur', 'Fred', 'Aaron'] },
-            { label: 'Instructor Sangeeta',  loc: ['en-IN'],          gen: 'female', pref: ['Lekha', 'Sangeeta'] },
-            { label: 'Instructor Isha',  loc: ['en-IN'],          gen: 'female', pref: ['Veena', 'Isha'] },
-            { label: 'Instructor Rishi',    loc: ['en-IN'],          gen: 'male',   pref: ['Rishi', 'Neel'] },
-            { label: 'Instructor Ravi',    loc: ['en-IN'],          gen: 'male',   pref: ['Ravi', 'Aditya'] },
-        ];
-
-        const finalOptions: VoiceOption[] = slots.map(slot => {
-            const result = findVoice(slot.loc, slot.gen, slot.pref);
-            return {
-                name: slot.label,
-                voiceIndex: result ? result.idx : -1,
-                pitch: 1.0,
-                rateMod: 1.0,
-                lang: result ? result.lang : (slot.loc[0])
+            // Priority 3: No voice found? Use default but KEEP the unique pitch/rate
+            return { 
+                name: slot.label, 
+                voiceIndex: -1, 
+                pitch: slot.pitch, 
+                rateMod: slot.rate, 
+                lang: slot.loc 
             };
         });
 
@@ -130,11 +124,11 @@ export const ListeningPractice: React.FC = () => {
     if (!selected) return;
     try {
       await TextToSpeech.speak({
-        text: `Hello, I am ${selected.name}. Ready for your session?`,
+        text: `Hello, I am ${selected.name}.`,
         lang: selected.lang,
         voice: selected.voiceIndex >= 0 ? selected.voiceIndex : undefined,
-        rate: 1.0,
-        pitch: 1.0,
+        rate: 1.0 * (selected.rateMod || 1.0),
+        pitch: selected.pitch || 1.0,
         volume: 1.0,
       });
     } catch(e) {}
@@ -159,11 +153,18 @@ export const ListeningPractice: React.FC = () => {
     setIsPlaying(true);
     setUserAnswer('');
 
+    // Instructor specific settings
+    const selectedOption = voiceOptions[newConfig.voiceIndex];
+    const instructorRate = selectedOption?.rateMod || 1.0;
+    const instructorPitch = selectedOption?.pitch || 1.0;
+    const voiceIdx = selectedOption?.voiceIndex;
+    const selectedLang = selectedOption?.lang || 'en-US';
+
     const uiSpeed = newConfig.listeningSpeed || 1.0;
     let gapMs = 1200;
-    let effectiveRate = uiSpeed;
+    let effectiveRate = uiSpeed * instructorRate;
 
-    if (uiSpeed >= 2.0) { gapMs = 0; effectiveRate = 2.4; } 
+    if (uiSpeed >= 2.0) { gapMs = 0; effectiveRate = 2.4 * instructorRate; } 
     else if (uiSpeed >= 1.8) { gapMs = 0; } 
     else if (uiSpeed >= 1.6) { gapMs = 300; } 
     else if (uiSpeed >= 1.4) { gapMs = 600; } 
@@ -172,10 +173,6 @@ export const ListeningPractice: React.FC = () => {
     if (newConfig.digits > 2 && uiSpeed < 1.8) gapMs += 300;
     
     await new Promise(resolve => setTimeout(resolve, 800));
-
-    const selectedOption = voiceOptions[newConfig.voiceIndex];
-    const voiceIdx = selectedOption?.voiceIndex;
-    const selectedLang = selectedOption?.lang || 'en-US';
 
     const speak = async (text: string, speedOverride?: number) => {
       if (stopRef.current) return;
@@ -186,7 +183,7 @@ export const ListeningPractice: React.FC = () => {
           text,
           lang: selectedLang,
           rate: finalRate,
-          pitch: 1.0, 
+          pitch: instructorPitch, 
           voice: voiceIdx >= 0 ? voiceIdx : undefined,
           volume: 1.0,
           category: 'ambient',
