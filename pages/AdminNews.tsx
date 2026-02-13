@@ -179,7 +179,7 @@ export const AdminNews: React.FC = () => {
                 `}
               >
                 {isSubmitting ? <Loader className="w-5 h-5 animate-spin" /> : <PlusCircle className="w-5 h-5" />}
-                {isSubmitting ? 'Posting...' : 'Publish Update'}
+                {isSubmitting ? 'Posting' : 'Publish Update'}
               </button>
             </form>
           </div>
