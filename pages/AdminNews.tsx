@@ -55,7 +55,7 @@ export const AdminNews: React.FC = () => {
       await addNews(title, content);
       setTitle('');
       setContent('');
-      alert('Posted successfully!');
+      alert('Posted successfully');
       // Switch to manage tab to see it
       fetchNews();
       setActiveTab('manage');
